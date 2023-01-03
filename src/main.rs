@@ -36,7 +36,6 @@ impl CPU {
 
             match opscode {
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
-                // BRK
                 // BRK - Force Interrupt
                 // The BRK instruction forces the generation of an interrupt request.
                 // The program counter and processor status are pushed on the stack then
@@ -47,7 +46,13 @@ impl CPU {
 
                     return;
                 }
-                // LDA 0xnn: Load Accumulator
+                // INX - Increment X Register
+                // Adds one to the X register setting the zero and negative flags as appropriate.
+                0xE8 => {
+                    (self.register_x, _) = self.register_x.overflowing_add(1);
+                    self.update_zero_and_negative_flag(self.register_x);
+                }
+                // LDA 0xnn - Load Accumulator
                 0xA9 => {
                     let param = program[self.program_counter as usize];
                     self.program_counter += 1;
