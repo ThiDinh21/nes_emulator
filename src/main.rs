@@ -5,6 +5,8 @@ pub struct CPU {
     /// stack pointer: 1 byte
     /// program counter: 2 bytes
     pub register_a: u8,
+    pub register_x: u8,
+    pub register_y: u8,
     pub status: u8,
     pub program_counter: u16,
 }
@@ -13,6 +15,8 @@ impl CPU {
     pub fn new() -> Self {
         CPU {
             register_a: 0,
+            register_x: 0,
+            register_y: 0,
             status: 0,
             program_counter: 0,
         }
@@ -31,6 +35,18 @@ impl CPU {
             self.program_counter += 1;
 
             match opscode {
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
+                // BRK
+                // BRK - Force Interrupt
+                // The BRK instruction forces the generation of an interrupt request.
+                // The program counter and processor status are pushed on the stack then
+                // the IRQ interrupt vector at $FFFE/F is loaded into the PC and the break
+                // flag in the status set to one.
+                0x00 => {
+                    self.status = self.status | 0b0001_0000;
+
+                    return;
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDA
                 // LDA 0xnn
                 // LDA - Load Accumulator
@@ -53,17 +69,23 @@ impl CPU {
                         self.status = self.status & 0b0111_1111;
                     }
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
-                // BRK
-                // BRK - Force Interrupt
-                // The BRK instruction forces the generation of an interrupt request.
-                // The program counter and processor status are pushed on the stack then
-                // the IRQ interrupt vector at $FFFE/F is loaded into the PC and the break
-                // flag in the status set to one.
-                0x00 => {
-                    self.status = self.status | 0b0001_0000;
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX
+                // Copies the current contents of the accumulator into the X register and sets the zero and negative
+                // flags as appropriate.
+                0xAA => {
+                    self.register_x = self.register_a;
 
-                    return;
+                    if self.register_x == 0 {
+                        self.status = self.status | 0b0000_0010;
+                    } else {
+                        self.status = self.status & 0b1111_1101;
+                    }
+
+                    if self.register_x & 0b1000_0000 != 0 {
+                        self.status = self.status | 0b1000_0000;
+                    } else {
+                        self.status = self.status & 0b0111_1111;
+                    }
                 }
                 _ => todo!(""),
             }
@@ -97,5 +119,17 @@ mod test {
         assert_eq!(cpu.register_a, 0x00);
         // zero flag should be 1
         assert!(cpu.status & 0b0000_0010 == 0b10);
+    }
+
+    #[test]
+    fn test_0xaa_tax_transfer_a_to_x() {
+        let mut cpu = CPU::new();
+        cpu.register_a = 0x69;
+        cpu.interpret(vec![0xaa, 0x00]);
+        assert_eq!(cpu.register_x, 0x69);
+        // zero flag should be 0
+        assert!(cpu.status & 0b0000_0010 == 0);
+        // negative flag should be 0
+        assert!(cpu.status & 0b1000_0000 == 0);
     }
 }
