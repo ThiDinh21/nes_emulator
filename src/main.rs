@@ -10,7 +10,7 @@ pub struct CPU {
 }
 
 impl CPU {
-    pub fn mew() -> Self {
+    pub fn new() -> Self {
         CPU {
             register_a: 0,
             status: 0,
