@@ -9,6 +9,8 @@ pub struct CPU {
     pub register_y: u8,
     pub status: u8,
     pub program_counter: u16,
+    /// https://www.nesdev.org/wiki/CPU_memory_map
+    pub memory: [u8; 0xFFFF],
 }
 
 impl CPU {
@@ -19,19 +21,13 @@ impl CPU {
             register_y: 0,
             status: 0,
             program_counter: 0,
+            memory: [0; 0xFFFF],
         }
     }
 
-    pub fn interpret(&mut self, program: Vec<u8>) {
-        //  The CPU works in a constant cycle:
-        // - Fetch next execution instruction from the instruction memory
-        // - Decode the instruction
-        // - Execute the instruction
-        // - Repeat the cycle
-        self.program_counter = 0;
-
+    pub fn run(&mut self) {
         loop {
-            let opscode = program[self.program_counter as usize];
+            let opscode = self.mem_read(self.program_counter);
             self.program_counter += 1;
 
             match opscode {
@@ -56,7 +52,7 @@ impl CPU {
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDA
                 // LDA 0xnn - Load Accumulator
                 0xA9 => {
-                    let param = program[self.program_counter as usize];
+                    let param = self.mem_read(self.program_counter);
                     self.program_counter += 1;
 
                     self.lda(param);
@@ -67,6 +63,30 @@ impl CPU {
                 _ => todo!(""),
             }
         }
+    }
+
+    fn mem_read(&self, addr: u16) -> u8 {
+        self.memory[addr as usize]
+    }
+
+    fn mem_write(&mut self, addr: u16, data: u8) {
+        self.memory[addr as usize] = data;
+    }
+
+    fn load(&mut self, program: Vec<u8>) {
+        // [0x8000 .. 0xFFFF] is reserved for program's ROM
+        self.program_counter = 0x8000;
+        self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
+    }
+
+    fn load_and_run(&mut self, program: Vec<u8>) {
+        //  The CPU works in a constant cycle:
+        // - Fetch next execution instruction from the instruction memory
+        // - Decode the instruction
+        // - Execute the instruction
+        // - Repeat the cycle
+        self.load(program);
+        self.run();
     }
 
     // Load Accumulator
@@ -113,7 +133,7 @@ mod test {
     #[test]
     fn test_0xa9_lda_immidiate_load_data() {
         let mut cpu = CPU::new();
-        cpu.interpret(vec![0xa9, 0x05, 0x00]);
+        cpu.run(vec![0xa9, 0x05, 0x00]);
         assert_eq!(cpu.register_a, 0x05);
         // zero flag should be 0
         assert!(cpu.status & 0b0000_0010 == 0);
@@ -124,7 +144,7 @@ mod test {
     #[test]
     fn test_0xa9_lda_zero_flag() {
         let mut cpu = CPU::new();
-        cpu.interpret(vec![0xa9, 0x0, 0x00]);
+        cpu.run(vec![0xa9, 0x0, 0x00]);
         assert_eq!(cpu.register_a, 0x00);
         // zero flag should be 1
         assert!(cpu.status & 0b0000_0010 == 0b10);
@@ -134,7 +154,7 @@ mod test {
     fn test_0xaa_tax_transfer_a_to_x() {
         let mut cpu = CPU::new();
         cpu.register_a = 0x69;
-        cpu.interpret(vec![0xaa, 0x00]);
+        cpu.run(vec![0xaa, 0x00]);
         assert_eq!(cpu.register_x, 0x69);
         // zero flag should be 0
         assert!(cpu.status & 0b0000_0010 == 0);
@@ -145,7 +165,7 @@ mod test {
     #[test]
     fn test_5_ops_working_together() {
         let mut cpu = CPU::new();
-        cpu.interpret(vec![0xa9, 0xc0, 0xaa, 0xe8, 0x00]);
+        cpu.run(vec![0xa9, 0xc0, 0xaa, 0xe8, 0x00]);
 
         assert_eq!(cpu.register_x, 0xc1)
     }
@@ -154,7 +174,7 @@ mod test {
     fn test_inx_overflow() {
         let mut cpu = CPU::new();
         cpu.register_x = 0xff;
-        cpu.interpret(vec![0xe8, 0xe8, 0x00]);
+        cpu.run(vec![0xe8, 0xe8, 0x00]);
 
         assert_eq!(cpu.register_x, 1)
     }
