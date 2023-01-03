@@ -46,12 +46,14 @@ impl CPU {
 
                     return;
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
                 // INX - Increment X Register
                 // Adds one to the X register setting the zero and negative flags as appropriate.
                 0xE8 => {
                     (self.register_x, _) = self.register_x.overflowing_add(1);
                     self.update_zero_and_negative_flag(self.register_x);
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDA
                 // LDA 0xnn - Load Accumulator
                 0xA9 => {
                     let param = program[self.program_counter as usize];
@@ -59,6 +61,7 @@ impl CPU {
 
                     self.lda(param);
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX
                 // TAX - Transfer Accumulator to X
                 0xAA => self.tax(),
                 _ => todo!(""),
@@ -66,8 +69,7 @@ impl CPU {
         }
     }
 
-    // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDA
-    // LDA - Load Accumulator
+    // Load Accumulator
     // Loads a byte of memory into the accumulator setting the zero and negative flags as appropriate.
     fn lda(&mut self, value: u8) {
         self.register_a = value;
@@ -75,8 +77,7 @@ impl CPU {
         self.update_zero_and_negative_flag(self.register_a);
     }
 
-    // https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX
-    // TAX - Transfer Accumulator to X
+    // Transfer Accumulator to X
     // Copies the current contents of the accumulator into the X register and sets the zero and negative
     // flags as appropriate.
     fn tax(&mut self) {
@@ -84,6 +85,8 @@ impl CPU {
         self.update_zero_and_negative_flag(self.register_x);
     }
 
+    // set bit 2 of status register if result == 0.
+    // set last bit of status register if bit 7 of result is set.
     fn update_zero_and_negative_flag(&mut self, result: u8) {
         if result == 0 {
             self.status = self.status | 0b0000_0010;
