@@ -13,6 +13,28 @@ pub struct CPU {
     pub memory: [u8; 0xFFFF],
 }
 
+/// See more: https://skilldrick.github.io/easy6502/#addressing
+/// The addressing mode is a property of an instruction that defines how the CPU should
+/// interpret the next 1 or 2 bytes in the instruction stream.
+/// For example, a single mnemonic (LDA) actually can be translated into 8 different machine
+/// instructions depending on the type of the parameter.
+#[derive(Debug)]
+#[allow(non_camel_case_types)]
+pub enum AddressingMode {
+    Immediate,
+    ZeroPage,
+    ZeroPage_X,
+    ZeroPage_Y,
+    Absolute,
+    Absolute_X,
+    Absolute_Y,
+    // TODO: understand why no Indirect, Relative, Implicit and Accumulator
+    // Indirect,
+    Indirect_X,
+    Indirect_Y,
+    NoneAddressing,
+}
+
 impl CPU {
     pub fn new() -> Self {
         CPU {
@@ -23,6 +45,12 @@ impl CPU {
             program_counter: 0,
             memory: [0; 0xFFFF],
         }
+    }
+
+    pub fn load_and_run(&mut self, program: Vec<u8>) {
+        self.load(program);
+        self.reset();
+        self.run();
     }
 
     //  The CPU works in a constant cycle:
@@ -110,12 +138,6 @@ impl CPU {
         self.mem_write_u16(0xFFFC, 0x8000);
     }
 
-    pub fn load_and_run(&mut self, program: Vec<u8>) {
-        self.load(program);
-        self.reset();
-        self.run();
-    }
-
     // Load Accumulator
     // Loads a byte of memory into the accumulator setting the zero and negative flags as appropriate.
     fn lda(&mut self, value: u8) {
@@ -130,6 +152,54 @@ impl CPU {
     fn tax(&mut self) {
         self.register_x = self.register_a;
         self.update_zero_and_negative_flag(self.register_x);
+    }
+
+    /// See more: https://skilldrick.github.io/easy6502/#addressing
+    fn get_operand_addr(&self, mode: AddressingMode) -> u16 {
+        match mode {
+            AddressingMode::Immediate => return self.program_counter,
+            AddressingMode::ZeroPage => return self.mem_read(self.program_counter) as u16,
+            AddressingMode::ZeroPage_X => {
+                let param = self.mem_read(self.program_counter);
+                let addr = param.wrapping_add(self.register_x) as u16;
+                addr
+            }
+            AddressingMode::ZeroPage_Y => {
+                let param = self.mem_read(self.program_counter);
+                let addr = param.wrapping_add(self.register_y) as u16;
+                addr
+            }
+            AddressingMode::Absolute => return self.mem_read_u16(self.program_counter),
+            AddressingMode::Absolute_X => {
+                let base = self.mem_read_u16(self.program_counter);
+                let addr = base.wrapping_add(self.register_x as u16);
+                addr
+            }
+            AddressingMode::Absolute_Y => {
+                let base = self.mem_read_u16(self.program_counter);
+                let addr = base.wrapping_add(self.register_y as u16);
+                addr
+            }
+            AddressingMode::Indirect_X => {
+                let base = self.mem_read(self.program_counter);
+                let ptr_lo = base.wrapping_add(self.register_x);
+                let ptr_hi = ptr_lo.wrapping_add(1);
+
+                let lo = self.mem_read(ptr_lo as u16);
+                let hi = self.mem_read(ptr_hi as u16);
+
+                return u16::from_le_bytes([lo, hi]);
+            }
+            AddressingMode::Indirect_Y => {
+                let base = self.mem_read(self.program_counter);
+                let deref_base = self.mem_read_u16(base as u16);
+
+                deref_base.wrapping_add(self.register_y as u16)
+            }
+            AddressingMode::NoneAddressing => {
+                panic!("mode {mode:?} is not supported");
+            }
+        }
     }
 
     // set bit 2 of status register if result == 0.
