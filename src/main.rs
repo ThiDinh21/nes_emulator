@@ -25,6 +25,11 @@ impl CPU {
         }
     }
 
+    //  The CPU works in a constant cycle:
+    // - Fetch next execution instruction from the instruction memory
+    // - Decode the instruction
+    // - Execute the instruction
+    // - Repeat the cycle
     pub fn run(&mut self) {
         loop {
             let opscode = self.mem_read(self.program_counter);
@@ -65,27 +70,49 @@ impl CPU {
         }
     }
 
-    fn mem_read(&self, addr: u16) -> u8 {
+    /// reset the state (registers and flags)
+    /// set program_counter to the 16-bit address that is stored at 0xFFFC
+    pub fn reset(&mut self) {
+        self.register_a = 0;
+        self.register_x = 0;
+        self.register_y = 0;
+        self.status = 0;
+        self.program_counter = self.mem_read_u16(0xFFFC);
+    }
+
+    pub fn mem_read(&self, addr: u16) -> u8 {
         self.memory[addr as usize]
     }
 
-    fn mem_write(&mut self, addr: u16, data: u8) {
+    pub fn mem_write(&mut self, addr: u16, data: u8) {
         self.memory[addr as usize] = data;
     }
 
-    fn load(&mut self, program: Vec<u8>) {
-        // [0x8000 .. 0xFFFF] is reserved for program's ROM
-        self.program_counter = 0x8000;
-        self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
+    pub fn mem_read_u16(&self, addr: u16) -> u16 {
+        let index = addr as usize;
+        let bytes = self.memory[index..=index + 1]
+            .try_into()
+            .expect("slice with incorect length");
+
+        return u16::from_le_bytes(bytes);
     }
 
-    fn load_and_run(&mut self, program: Vec<u8>) {
-        //  The CPU works in a constant cycle:
-        // - Fetch next execution instruction from the instruction memory
-        // - Decode the instruction
-        // - Execute the instruction
-        // - Repeat the cycle
+    pub fn mem_write_u16(&mut self, addr: u16, data: u16) {
+        let bytes = data.to_le_bytes();
+
+        self.mem_write(addr, bytes[0]);
+        self.mem_write(addr + 1, bytes[1]);
+    }
+
+    pub fn load(&mut self, program: Vec<u8>) {
+        // [0x8000 .. 0xFFFF] is reserved for program's ROM
+        self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
+        self.mem_write_u16(0xFFFC, 0x8000);
+    }
+
+    pub fn load_and_run(&mut self, program: Vec<u8>) {
         self.load(program);
+        self.reset();
         self.run();
     }
 
