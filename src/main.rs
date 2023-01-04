@@ -51,11 +51,11 @@ impl CPU {
                 // INX - Increment X Register
                 // Adds one to the X register setting the zero and negative flags as appropriate.
                 0xE8 => {
-                    (self.register_x, _) = self.register_x.overflowing_add(1);
+                    self.register_x = self.register_x.wrapping_add(1);
                     self.update_zero_and_negative_flag(self.register_x);
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDA
-                // LDA 0xnn - Load Accumulator
+                // LDA - Load Accumulator
                 0xA9 => {
                     let param = self.mem_read(self.program_counter);
                     self.program_counter += 1;
