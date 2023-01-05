@@ -85,10 +85,36 @@ impl CPU {
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDA
                 // LDA - Load Accumulator
                 0xA9 => {
-                    let param = self.mem_read(self.program_counter);
+                    self.lda(&AddressingMode::Immediate);
                     self.program_counter += 1;
-
-                    self.lda(param);
+                }
+                0xA5 => {
+                    self.lda(&AddressingMode::ZeroPage);
+                    self.program_counter += 1;
+                }
+                0xB5 => {
+                    self.lda(&AddressingMode::ZeroPage_X);
+                    self.program_counter += 1;
+                }
+                0xAD => {
+                    self.lda(&AddressingMode::Absolute);
+                    self.program_counter += 1;
+                }
+                0xBD => {
+                    self.lda(&AddressingMode::Absolute_X);
+                    self.program_counter += 1;
+                }
+                0xB9 => {
+                    self.lda(&AddressingMode::Absolute_Y);
+                    self.program_counter += 1;
+                }
+                0xA1 => {
+                    self.lda(&AddressingMode::Indirect_X);
+                    self.program_counter += 1;
+                }
+                0xB1 => {
+                    self.lda(&AddressingMode::Indirect_Y);
+                    self.program_counter += 1;
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX
                 // TAX - Transfer Accumulator to X
@@ -140,8 +166,9 @@ impl CPU {
 
     // Load Accumulator
     // Loads a byte of memory into the accumulator setting the zero and negative flags as appropriate.
-    fn lda(&mut self, value: u8) {
-        self.register_a = value;
+    fn lda(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        self.register_a = self.mem_read(addr);
 
         self.update_zero_and_negative_flag(self.register_a);
     }
@@ -155,7 +182,7 @@ impl CPU {
     }
 
     /// See more: https://skilldrick.github.io/easy6502/#addressing
-    fn get_operand_addr(&self, mode: AddressingMode) -> u16 {
+    fn get_operand_addr(&self, mode: &AddressingMode) -> u16 {
         match mode {
             AddressingMode::Immediate => return self.program_counter,
             AddressingMode::ZeroPage => return self.mem_read(self.program_counter) as u16,
@@ -272,5 +299,15 @@ mod test {
         cpu.load_and_run(vec![0xe8, 0xe8, 0x00]);
 
         assert_eq!(cpu.register_x, 2)
+    }
+
+    #[test]
+    fn test_lda_from_memory() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x10, 0x55);
+
+        cpu.load_and_run(vec![0xa5, 0x10, 0x00]);
+
+        assert_eq!(cpu.register_a, 0x55);
     }
 }
