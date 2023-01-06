@@ -98,15 +98,15 @@ impl CPU {
                 }
                 0xAD => {
                     self.lda(&AddressingMode::Absolute);
-                    self.program_counter += 1;
+                    self.program_counter += 2;
                 }
                 0xBD => {
                     self.lda(&AddressingMode::Absolute_X);
-                    self.program_counter += 1;
+                    self.program_counter += 2;
                 }
                 0xB9 => {
                     self.lda(&AddressingMode::Absolute_Y);
-                    self.program_counter += 1;
+                    self.program_counter += 2;
                 }
                 0xA1 => {
                     self.lda(&AddressingMode::Indirect_X);
@@ -114,6 +114,36 @@ impl CPU {
                 }
                 0xB1 => {
                     self.lda(&AddressingMode::Indirect_Y);
+                    self.program_counter += 1;
+                }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#STA
+                // STA - Store Accumulator
+                0x85 => {
+                    self.sta(&AddressingMode::ZeroPage);
+                    self.program_counter += 1;
+                }
+                0x95 => {
+                    self.sta(&AddressingMode::ZeroPage_X);
+                    self.program_counter += 1;
+                }
+                0x8D => {
+                    self.sta(&AddressingMode::Absolute);
+                    self.program_counter += 2;
+                }
+                0x9D => {
+                    self.sta(&AddressingMode::Absolute_X);
+                    self.program_counter += 2;
+                }
+                0x99 => {
+                    self.sta(&AddressingMode::Absolute_Y);
+                    self.program_counter += 2;
+                }
+                0x81 => {
+                    self.sta(&AddressingMode::Indirect_X);
+                    self.program_counter += 1;
+                }
+                0x91 => {
+                    self.sta(&AddressingMode::Indirect_Y);
                     self.program_counter += 1;
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX
@@ -164,13 +194,20 @@ impl CPU {
         self.mem_write_u16(0xFFFC, 0x8000);
     }
 
-    // Load Accumulator
-    // Loads a byte of memory into the accumulator setting the zero and negative flags as appropriate.
+    /// Load Accumulator
+    /// Loads a byte of memory into the accumulator setting the zero and negative flags as appropriate.
     fn lda(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         self.register_a = self.mem_read(addr);
 
         self.update_zero_and_negative_flag(self.register_a);
+    }
+
+    /// Store Accumulator
+    /// Stores the contents of the accumulator into memory.
+    fn sta(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        self.mem_write(addr, self.register_a);
     }
 
     // Transfer Accumulator to X
