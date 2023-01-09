@@ -14,7 +14,6 @@ pub enum AddressingMode {
     Absolute_X,
     Absolute_Y,
     // TODO: implement Indirect, Relative, Implicit and Accumulator
-    // Indirect,
     Indirect_X,
     Indirect_Y,
     NoneAddressing,
