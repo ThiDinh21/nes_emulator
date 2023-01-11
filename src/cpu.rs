@@ -3,6 +3,7 @@ use bitflags::bitflags;
 use crate::opcodes;
 
 bitflags! {
+    /// https://www.nesdev.org/wiki/Status_flags
     /// 7  bit  0
     /// ---- ----
     /// NVss DIZC
