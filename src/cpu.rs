@@ -1,4 +1,30 @@
+use bitflags::bitflags;
+
 use crate::opcodes;
+
+bitflags! {
+    /// 7  bit  0
+    /// ---- ----
+    /// NVss DIZC
+    /// |||| ||||
+    /// |||| |||+- Carry
+    /// |||| ||+-- Zero
+    /// |||| |+--- Interrupt Disable
+    /// |||| +---- Decimal (not used on NES)
+    /// ||++------ B flag, No CPU effect
+    /// |+-------- Overflow
+    /// +--------- Negative
+    pub struct StatusFlags: u8 {
+        const CARRY = 0b0000_0001;
+        const ZERO = 0b0000_0010;
+        const INTERUPT = 0b0000_0100;
+        const DECIMAL = 0b0000_1000;
+        const BREAK1  = 0b0001_0000;
+        const BREAK2  = 0b0010_0000;
+        const OVERFLOW = 0b0100_0000;
+        const NEGATIVE = 0b1000_0000;
+    }
+}
 
 /// See more: https://skilldrick.github.io/easy6502/#addressing
 /// The addressing mode is a property of an instruction that defines how the CPU should
@@ -30,7 +56,7 @@ pub struct CPU {
     pub register_a: u8,
     pub register_x: u8,
     pub register_y: u8,
-    pub status: u8,
+    pub status: StatusFlags,
     pub program_counter: u16,
     /// https://www.nesdev.org/wiki/CPU_memory_map
     pub memory: [u8; 0xFFFF],
@@ -72,7 +98,7 @@ impl CPU {
             register_a: 0,
             register_x: 0,
             register_y: 0,
-            status: 0,
+            status: StatusFlags::from_bits_truncate(0b0010_0100),
             program_counter: 0,
             memory: [0; 0xFFFF],
         }
@@ -101,6 +127,14 @@ impl CPU {
                 .expect(&format!("OpCode {:x} is not recognized", code));
 
             match code {
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#ADC
+                // ADC - Add with Carry
+                // This instruction adds the contents of a memory location to the accumulator
+                // together with the carry bit. If overflow occurs the carry bit is set, this enables
+                // multiple byte addition to be performed.
+                0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {
+                    todo!("Implement ADC");
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 // BRK - Force Interrupt
                 // The BRK instruction forces the generation of an interrupt request.
@@ -108,8 +142,7 @@ impl CPU {
                 // the IRQ interrupt vector at $FFFE/F is loaded into the PC and the break
                 // flag in the status set to one.
                 0x00 => {
-                    self.status = self.status | 0b0001_0000;
-
+                    self.status.insert(StatusFlags::BREAK1);
                     return;
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
@@ -147,7 +180,7 @@ impl CPU {
         self.register_a = 0;
         self.register_x = 0;
         self.register_y = 0;
-        self.status = 0;
+        self.status = StatusFlags::from_bits_truncate(0b0010_0100);
         self.program_counter = self.mem_read_u16(0xFFFC);
     }
 
@@ -155,6 +188,12 @@ impl CPU {
         // [0x8000 .. 0xFFFF] is reserved for program's ROM
         self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
         self.mem_write_u16(0xFFFC, 0x8000);
+    }
+
+    pub fn adc(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        let operand = self.mem_read(addr);
+        todo!()
     }
 
     /// Load Accumulator
@@ -233,15 +272,15 @@ impl CPU {
     // set last bit of status register if bit 7 of result is set.
     fn update_zero_and_negative_flag(&mut self, result: u8) {
         if result == 0 {
-            self.status = self.status | 0b0000_0010;
+            self.status.insert(StatusFlags::ZERO);
         } else {
-            self.status = self.status & 0b1111_1101;
+            self.status.remove(StatusFlags::ZERO);
         }
 
         if result & 0b1000_0000 != 0 {
-            self.status = self.status | 0b1000_0000;
+            self.status.insert(StatusFlags::NEGATIVE);
         } else {
-            self.status = self.status & 0b0111_1111;
+            self.status.remove(StatusFlags::NEGATIVE);
         }
     }
 }
@@ -256,9 +295,9 @@ mod test {
         cpu.load_and_run(vec![0xa9, 0x05, 0x00]);
         assert_eq!(cpu.register_a, 0x05);
         // zero flag should be 0
-        assert!(cpu.status & 0b0000_0010 == 0);
+        assert!(!cpu.status.contains(StatusFlags::ZERO));
         // negative flag should be 0
-        assert!(cpu.status & 0b1000_0000 == 0);
+        assert!(!cpu.status.contains(StatusFlags::NEGATIVE));
     }
 
     #[test]
@@ -267,7 +306,7 @@ mod test {
         cpu.load_and_run(vec![0xa9, 0x00, 0x00]);
         assert_eq!(cpu.register_a, 0x00);
         // zero flag should be 1
-        assert!(cpu.status & 0b0000_0010 == 0b10);
+        assert!(cpu.status.contains(StatusFlags::ZERO));
     }
 
     #[test]
@@ -276,9 +315,9 @@ mod test {
         cpu.load_and_run(vec![0xa9, 0x69, 0xaa, 0x00]);
         assert_eq!(cpu.register_x, 0x69);
         // zero flag should be 0
-        assert!(cpu.status & 0b0000_0010 == 0);
+        assert!(!cpu.status.contains(StatusFlags::ZERO));
         // negative flag should be 0
-        assert!(cpu.status & 0b1000_0000 == 0);
+        assert!(!cpu.status.contains(StatusFlags::NEGATIVE));
     }
 
     #[test]
