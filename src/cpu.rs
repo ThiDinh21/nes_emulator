@@ -162,6 +162,13 @@ impl CPU {
                 0x90 => {
                     self.branch(!self.status.contains(StatusFlags::CARRY));                        
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BCS
+                // BCS - Branch if Carry Set
+                // If the carry flag is set then add the relative displacement to the program counter to
+                // cause a branch to a new location.
+                0xB0 => {
+                    self.branch(self.status.contains(StatusFlags::CARRY));                        
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 // BRK - Force Interrupt
                 // The BRK instruction forces the generation of an interrupt request.
