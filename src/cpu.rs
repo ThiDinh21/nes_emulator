@@ -136,6 +136,13 @@ impl CPU {
                 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {
                     self.adc(&opcode.mode);
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#AND
+                // AND - Logical AND
+                // A logical AND is performed, bit by bit, on the accumulator contents using the contents
+                // of a byte of memory.
+                0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => {
+                    self.and(&opcode.mode);
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 // BRK - Force Interrupt
                 // The BRK instruction forces the generation of an interrupt request.
@@ -191,7 +198,7 @@ impl CPU {
         self.mem_write_u16(0xFFFC, 0x8000);
     }
 
-    /// ADC - Add with Carry
+    /// Add with Carry
     /// This instruction adds the contents of a memory location to the accumulator
     /// together with the carry bit. If overflow occurs the carry bit is set,
     /// this enables multiple byte addition to be performed.
@@ -199,6 +206,16 @@ impl CPU {
         let addr = self.get_operand_addr(mode);
         let operand = self.mem_read(addr);
         self.add_to_register_a(operand);
+    }
+
+    /// AND - Logical AND
+    /// A logical AND is performed, bit by bit, on the accumulator contents using the
+    ///  contents of a byte of memory.
+    pub fn and(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        let operand = self.mem_read(addr);
+        let result = self.register_a & operand;
+        self.set_register_a(result);
     }
 
     /// Load Accumulator
@@ -394,5 +411,16 @@ mod test {
         assert_eq!(cpu.register_a, 0xa0);
         assert!(cpu.status.contains(StatusFlags::OVERFLOW));
         assert!(!cpu.status.contains(StatusFlags::CARRY));
+    }
+
+    #[test]
+    fn test_and_0x2d() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x1000, 0x50);
+        // set reg_a to 0x10
+        // and reg_a with 0x50
+        cpu.load_and_run(vec![0xa9, 0x10, 0x2D, 0x00, 0x10, 0x00]);
+
+        assert_eq!(cpu.register_a, 0x10);
     }
 }
