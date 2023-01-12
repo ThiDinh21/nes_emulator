@@ -169,6 +169,20 @@ impl CPU {
                 0xB0 => {
                     self.branch(self.status.contains(StatusFlags::CARRY));                        
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BEQ
+                // BEQ - Branch if Equal
+                // If the zero flag is set then add the relative displacement to the program counter to 
+                // cause a branch to a new location.
+                0xF0 => {
+                    self.branch(self.status.contains(StatusFlags::ZERO));
+                }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BEQ
+                // BNE - Branch if Not Equal
+                // If the zero flag is clear then add the relative displacement to the program counter to 
+                // cause a branch to a new location.
+                0xD0 => {
+                    self.branch(self.status.contains(StatusFlags::ZERO));
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 // BRK - Force Interrupt
                 // The BRK instruction forces the generation of an interrupt request.

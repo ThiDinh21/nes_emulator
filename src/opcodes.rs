@@ -54,6 +54,12 @@ lazy_static! {
         // BCS
         OpCode::new(0xB0, "BCS", 2, 2 /* +1 if branch succeeds
                                          +2 if to a new page */, AddressingMode::NoneAddressing),
+        // BEQ
+        OpCode::new(0xF0, "BEQ", 2, 2 /* +1 if branch succeeds
+                                         +2 if to a new page */, AddressingMode::NoneAddressing),
+        // BNE
+        OpCode::new(0xD0, "BEQ", 2, 2 /* +1 if branch succeeds
+                                         +2 if to a new page */, AddressingMode::NoneAddressing),
         // BRK
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
         // INX
