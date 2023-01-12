@@ -230,6 +230,11 @@ impl CPU {
         self.set_register_a(result);
     }
 
+    /// Arithmetic Shift Left
+    /// This operation shifts all the bits of the accumulator or memory contents one bit left.
+    /// Bit 0 is set to 0 and bit 7 is placed in the carry flag. The effect of this operation is
+    /// to multiply the memory contents by 2 (ignoring 2's complement considerations), setting
+    /// the carry if the result will not fit in 8 bits.
     pub fn asl_accumulator(&mut self) {
         if self.register_a >> 7 == 0 {
             self.clear_carry_flag();
@@ -239,6 +244,7 @@ impl CPU {
         self.set_register_a(self.register_a << 1);
     }
 
+    /// Arithmetic Shift Left
     pub fn asl(&mut self, mode: &AddressingMode) -> u8 {
         let addr = self.get_operand_addr(mode);
         let mut operand = self.mem_read(addr);
