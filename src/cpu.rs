@@ -380,6 +380,11 @@ impl CPU {
         self.update_zero_and_negative_flag(self.register_a);
     }
 
+    /// Use for branching opcodes (e.g. BEQ, BNE, etc.) that use Relative Adressing Mode. 
+    /// Such opcodes will contain a signed 8 bit relative offset (e.g. -128 to +127) which is 
+    /// added to program counter if the condition is true. As the program counter itself is 
+    /// incremented during instruction execution by two the effective address range for the 
+    /// target instruction must be with -126 to +129 bytes of the branch.
     fn branch(&mut self, condition: bool) {
         if condition {
             let displacement = self.mem_read(self.program_counter) as i8;
@@ -390,8 +395,8 @@ impl CPU {
         }
     }
 
-    // Set bit 2 of status register if result == 0.
-    // Set last bit of status register if bit 7 of result is set.
+    /// Set bit 2 of status register if result == 0.
+    /// Set last bit of status register if bit 7 of result is set.
     fn update_zero_and_negative_flag(&mut self, result: u8) {
         if result == 0 {
             self.status.insert(StatusFlags::ZERO);
