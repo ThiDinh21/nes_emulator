@@ -232,9 +232,9 @@ impl CPU {
 
     pub fn asl_accumulator(&mut self) {
         if self.register_a >> 7 == 0 {
-            self.status.remove(StatusFlags::CARRY);
+            self.clear_carry_flag();
         } else {
-            self.status.insert(StatusFlags::CARRY);
+            self.set_carry_flag();
         }
         self.set_register_a(self.register_a << 1);
     }
@@ -244,9 +244,9 @@ impl CPU {
         let mut operand = self.mem_read(addr);
 
         if operand >> 7 == 0 {
-            self.status.remove(StatusFlags::CARRY);
+            self.clear_carry_flag();
         } else {
-            self.status.insert(StatusFlags::CARRY);
+            self.set_carry_flag();
         }
 
         operand = operand << 1;
@@ -339,9 +339,9 @@ impl CPU {
         (sum, carry_2) = sum.overflowing_add(carry_val as u8);
 
         if carry_1 || carry_2 {
-            self.status.insert(StatusFlags::CARRY);
+            self.set_carry_flag();
         } else {
-            self.status.remove(StatusFlags::CARRY);
+            self.clear_carry_flag();
         }
 
         // http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
@@ -374,6 +374,14 @@ impl CPU {
         } else {
             self.status.remove(StatusFlags::NEGATIVE);
         }
+    }
+
+    fn set_carry_flag(&mut self) {
+        self.status.insert(StatusFlags::CARRY);
+    }
+
+    fn clear_carry_flag(&mut self) {
+        self.status.remove(StatusFlags::CARRY);
     }
 }
 
