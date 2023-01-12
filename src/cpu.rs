@@ -191,6 +191,10 @@ impl CPU {
         self.mem_write_u16(0xFFFC, 0x8000);
     }
 
+    /// ADC - Add with Carry
+    /// This instruction adds the contents of a memory location to the accumulator
+    /// together with the carry bit. If overflow occurs the carry bit is set,
+    /// this enables multiple byte addition to be performed.
     pub fn adc(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         let operand = self.mem_read(addr);
@@ -269,6 +273,8 @@ impl CPU {
         }
     }
 
+    /// add value to register A, set Carry and Overflow , Zero, Negative
+    /// flags if needed,
     fn add_to_register_a(&mut self, value: u8) {
         let carry_val = self.status.contains(StatusFlags::CARRY);
         let mut sum = self.register_a;
@@ -294,6 +300,7 @@ impl CPU {
         self.set_register_a(sum);
     }
 
+    /// set value to register A and set Zero and Negative flag if needed
     fn set_register_a(&mut self, value: u8) {
         self.register_a = value;
         self.update_zero_and_negative_flag(self.register_a);
