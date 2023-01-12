@@ -134,7 +134,7 @@ impl CPU {
                 // together with the carry bit. If overflow occurs the carry bit is set, this enables
                 // multiple byte addition to be performed.
                 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {
-                    todo!("Implement ADC");
+                    self.adc(&opcode.mode);
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 // BRK - Force Interrupt
@@ -194,7 +194,7 @@ impl CPU {
     pub fn adc(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         let operand = self.mem_read(addr);
-        todo!()
+        self.add_to_register_a(operand);
     }
 
     /// Load Accumulator
@@ -267,6 +267,36 @@ impl CPU {
                 panic!("mode {mode:?} is not supported");
             }
         }
+    }
+
+    fn add_to_register_a(&mut self, value: u8) {
+        let carry_val = self.status.contains(StatusFlags::CARRY);
+        let mut sum = self.register_a;
+        let carry_1: bool;
+        let carry_2: bool;
+
+        (sum, carry_1) = sum.overflowing_add(value);
+        (sum, carry_2) = sum.overflowing_add(carry_val as u8);
+
+        if carry_1 || carry_2 {
+            self.status.insert(StatusFlags::CARRY);
+        } else {
+            self.status.remove(StatusFlags::CARRY);
+        }
+
+        // http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+        if (self.register_a ^ sum) & (value ^ sum) & 0x80 != 0 {
+            self.status.insert(StatusFlags::OVERFLOW);
+        } else {
+            self.status.remove(StatusFlags::OVERFLOW);
+        }
+
+        self.set_register_a(sum);
+    }
+
+    fn set_register_a(&mut self, value: u8) {
+        self.register_a = value;
+        self.update_zero_and_negative_flag(self.register_a);
     }
 
     // set bit 2 of status register if result == 0.
@@ -345,5 +375,18 @@ mod test {
         cpu.load_and_run(vec![0xa5, 0x10, 0x00]);
 
         assert_eq!(cpu.register_a, 0x55);
+    }
+
+    #[test]
+    fn test_adc_0x69() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x10, 0x50);
+        // set reg_a to 0x55
+        // add reg_a with 0xFF
+        cpu.load_and_run(vec![0xa5, 0x10, 0x69, 0x50, 0x00]);
+
+        assert_eq!(cpu.register_a, 0xa0);
+        assert!(cpu.status.contains(StatusFlags::OVERFLOW));
+        assert!(!cpu.status.contains(StatusFlags::CARRY));
     }
 }
