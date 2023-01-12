@@ -155,6 +155,19 @@ impl CPU {
                 0x06 | 0x16 | 0x0E | 0x1E => {
                     self.asl(&opcode.mode);
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BCC
+                // BCC - Branch if Carry Clear
+                // If the carry flag is clear then add the relative displacement to the program counter to
+                // cause a branch to a new location.
+                0x90 => {
+                    if self.status.contains(StatusFlags::CARRY) {
+                        let displacement = self.mem_read(self.program_counter) as i8;
+                        let jump_addr = self.program_counter
+                                                    .wrapping_add(1)
+                                                    .wrapping_add(displacement as u16);
+                        self.program_counter = jump_addr;
+                    }
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 // BRK - Force Interrupt
                 // The BRK instruction forces the generation of an interrupt request.
