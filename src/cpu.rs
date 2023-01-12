@@ -143,6 +143,18 @@ impl CPU {
                 0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => {
                     self.and(&opcode.mode);
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#ASL
+                // ASL - Arithmetic Shift Left
+                // This operation shifts all the bits of the accumulator or memory contents one bit left.
+                // Bit 0 is set to 0 and bit 7 is placed in the carry flag. The effect of this operation is
+                // to multiply the memory contents by 2 (ignoring 2's complement considerations), setting
+                // the carry if the result will not fit in 8 bits.
+                0x0A /* Accumulator mode */ => {
+                    self.asl_accumulator();
+                }
+                0x06 | 0x16 | 0x0E | 0x1E => {
+                    self.asl(&opcode.mode);
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 // BRK - Force Interrupt
                 // The BRK instruction forces the generation of an interrupt request.
@@ -208,7 +220,7 @@ impl CPU {
         self.add_to_register_a(operand);
     }
 
-    /// AND - Logical AND
+    /// Logical AND
     /// A logical AND is performed, bit by bit, on the accumulator contents using the
     ///  contents of a byte of memory.
     pub fn and(&mut self, mode: &AddressingMode) {
@@ -216,6 +228,32 @@ impl CPU {
         let operand = self.mem_read(addr);
         let result = self.register_a & operand;
         self.set_register_a(result);
+    }
+
+    pub fn asl_accumulator(&mut self) {
+        if self.register_a >> 7 == 0 {
+            self.status.remove(StatusFlags::CARRY);
+        } else {
+            self.status.insert(StatusFlags::CARRY);
+        }
+        self.set_register_a(self.register_a << 1);
+    }
+
+    pub fn asl(&mut self, mode: &AddressingMode) -> u8 {
+        let addr = self.get_operand_addr(mode);
+        let mut operand = self.mem_read(addr);
+
+        if operand >> 7 == 0 {
+            self.status.remove(StatusFlags::CARRY);
+        } else {
+            self.status.insert(StatusFlags::CARRY);
+        }
+
+        operand = operand << 1;
+        self.mem_write(addr, operand as u8);
+        self.update_zero_and_negative_flag(operand);
+
+        operand
     }
 
     /// Load Accumulator
