@@ -202,7 +202,8 @@ impl CPU {
     }
 
     /// Load Accumulator
-    /// Loads a byte of memory into the accumulator setting the zero and negative flags as appropriate.
+    /// Loads a byte of memory into the accumulator setting the zero and negative
+    /// flags as appropriate.
     fn lda(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         let value = self.mem_read(addr);
@@ -216,9 +217,9 @@ impl CPU {
         self.mem_write(addr, self.register_a);
     }
 
-    // Transfer Accumulator to X
-    // Copies the current contents of the accumulator into the X register and sets the zero and negative
-    // flags as appropriate.
+    /// Transfer Accumulator to X
+    /// Copies the current contents of the accumulator into the X register and sets
+    /// the zero and negative flags as appropriate.
     fn tax(&mut self) {
         self.register_x = self.register_a;
         self.update_zero_and_negative_flag(self.register_x);
@@ -272,8 +273,7 @@ impl CPU {
         }
     }
 
-    /// add value to register A, set Carry and Overflow , Zero, Negative
-    /// flags if needed,
+    /// Add value to register A, set Carry and Overflow , Zero, Negative flags if needed.
     fn add_to_register_a(&mut self, value: u8) {
         let carry_val = self.status.contains(StatusFlags::CARRY);
         let mut sum = self.register_a;
@@ -299,14 +299,14 @@ impl CPU {
         self.set_register_a(sum);
     }
 
-    /// set value to register A and set Zero and Negative flag if needed
+    /// Set value to register A and set Zero and Negative flag if needed.
     fn set_register_a(&mut self, value: u8) {
         self.register_a = value;
         self.update_zero_and_negative_flag(self.register_a);
     }
 
-    // set bit 2 of status register if result == 0.
-    // set last bit of status register if bit 7 of result is set.
+    // Set bit 2 of status register if result == 0.
+    // Set last bit of status register if bit 7 of result is set.
     fn update_zero_and_negative_flag(&mut self, result: u8) {
         if result == 0 {
             self.status.insert(StatusFlags::ZERO);
