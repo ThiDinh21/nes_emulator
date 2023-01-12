@@ -205,9 +205,8 @@ impl CPU {
     /// Loads a byte of memory into the accumulator setting the zero and negative flags as appropriate.
     fn lda(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
-        self.register_a = self.mem_read(addr);
-
-        self.update_zero_and_negative_flag(self.register_a);
+        let value = self.mem_read(addr);
+        self.set_register_a(value);
     }
 
     /// Store Accumulator
