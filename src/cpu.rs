@@ -160,7 +160,7 @@ impl CPU {
                 // If the carry flag is clear then add the relative displacement to the program counter to
                 // cause a branch to a new location.
                 0x90 => {
-                    self.branch(self.status.contains(StatusFlags::CARRY));                        
+                    self.branch(!self.status.contains(StatusFlags::CARRY));                        
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 // BRK - Force Interrupt
