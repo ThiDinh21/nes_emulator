@@ -160,13 +160,7 @@ impl CPU {
                 // If the carry flag is clear then add the relative displacement to the program counter to
                 // cause a branch to a new location.
                 0x90 => {
-                    if self.status.contains(StatusFlags::CARRY) {
-                        let displacement = self.mem_read(self.program_counter) as i8;
-                        let jump_addr = self.program_counter
-                                                    .wrapping_add(1)
-                                                    .wrapping_add(displacement as u16);
-                        self.program_counter = jump_addr;
-                    }
+                    self.branch(self.status.contains(StatusFlags::CARRY));                        
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 // BRK - Force Interrupt
@@ -377,6 +371,16 @@ impl CPU {
     fn set_register_a(&mut self, value: u8) {
         self.register_a = value;
         self.update_zero_and_negative_flag(self.register_a);
+    }
+
+    fn branch(&mut self, condition: bool) {
+        if condition {
+            let displacement = self.mem_read(self.program_counter) as i8;
+            let jump_addr = self.program_counter
+                                        .wrapping_add(1)
+                                        .wrapping_add(displacement as u16);
+            self.program_counter = jump_addr;
+        }
     }
 
     // Set bit 2 of status register if result == 0.
