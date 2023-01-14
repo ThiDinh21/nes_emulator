@@ -288,6 +288,14 @@ impl CPU {
                     self.register_y = self.register_y.wrapping_add(1);
                     self.update_zero_and_negative_flag(self.register_y);
                 }
+                
+                // JMP - Jump
+                // Sets the program counter to the address specified by the operand.
+                0x4C /* Absolute */ => {
+                    let jump_addr  = self.mem_read_u16(self.program_counter);
+                    self.program_counter = jump_addr;
+                }
+                0x6C /* Indirect */ => self.indirect_jmp(),
 
                 // LDA - Load Accumulator
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
@@ -301,6 +309,7 @@ impl CPU {
 
                 // TAX - Transfer Accumulator to X
                 0xAA => self.tax(),
+
                 _ => todo!(""),
             }
 
@@ -453,6 +462,29 @@ impl CPU {
         self.update_zero_and_negative_flag(operand);
 
         operand
+    }
+
+    /// Jump indirect
+    /// Sets the program counter to the address specified by the operand.
+    fn indirect_jmp(&mut self) {
+        // Indirect addressing: https://www.nesdev.org/obelisk-6502-guide/addressing.html#IND
+        let indirect_addr  = self.mem_read_u16(self.program_counter);
+        let msb_addr: u16;
+
+        // An original 6502 bug:
+        // If the indirect vector falls on a page boundary (e.g. $xxFF where xx is any value from $00 to $FF):
+        // Fetches the LSB from $xxFF as expected but takes the MSB from $xx00.
+        if indirect_addr & 0x00FF == 0x00FF {
+            msb_addr = indirect_addr & 0xFF00;
+        }
+        else {
+            msb_addr = indirect_addr.wrapping_add(1);
+        }
+
+        let lsb = self.mem_read(indirect_addr);
+        let msb = self.mem_read(msb_addr);
+
+        self.program_counter = u16::from_le_bytes([lsb, msb]);
     }
 
     /// Load Accumulator
