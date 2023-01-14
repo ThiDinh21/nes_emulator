@@ -235,8 +235,24 @@ impl CPU {
                 0xB8 => self.status.remove(StatusFlags::OVERFLOW),
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#CMP
                 // CMP - Compare
+                // Compares the contents of the accumulator with another memory held value and sets
+                // the zero and carry flags as appropriate.
                 0xC9 | 0xC5 |0xD5 |0xCD |0xDD | 0xD9 | 0xC1 |0xD1 => {
                     self.compare(&opcode.mode, self.register_a);
+                }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CPX
+                // CPX - Compare X Register
+                // Compares the contents of the X register with another memory held value and sets
+                // the zero and carry flags as appropriate.
+                0xE0 | 0xE4 | 0xEC => {
+                    self.compare(&opcode.mode, self.register_x);
+                }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CPY
+                // CPY - Compare Y Register
+                // Compares the contents of the Y register with another memory held value and sets
+                // the zero and carry flags as appropriate.
+                0xC0 | 0xC4 | 0xCC => {
+                    self.compare(&opcode.mode, self.register_y);
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
                 // INX - Increment X Register
@@ -353,6 +369,8 @@ impl CPU {
         self.status.set(StatusFlags::NEGATIVE, operand & 0b1000_0000 > 0);
     }
 
+    /// Compare a memory held value with some data (e.g. registers) and
+    /// sets the zero, negative and carry flags as appropriate.
     fn compare(&mut self, mode: &AddressingMode, compare_with: u8) {
         let addr = self.get_operand_addr(mode);
         let operand = self.mem_read(addr);
