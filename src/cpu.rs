@@ -254,6 +254,11 @@ impl CPU {
                 0xC0 | 0xC4 | 0xCC => {
                     self.compare(&opcode.mode, self.register_y);
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#DEC
+                // DEC - Decrement Memory
+                0xC6 | 0xD6 | 0xCE | 0xDE => {
+                    self.dec(&opcode.mode);
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
                 // INX - Increment X Register
                 0xE8 => {
@@ -369,21 +374,19 @@ impl CPU {
         self.status.set(StatusFlags::NEGATIVE, operand & 0b1000_0000 > 0);
     }
 
-    /// Compare a memory held value with some data (e.g. registers) and
-    /// sets the zero, negative and carry flags as appropriate.
-    fn compare(&mut self, mode: &AddressingMode, compare_with: u8) {
+    /// Decrement Memory
+    /// Subtracts one from the value held at a specified memory location setting 
+    /// the zero and negative flags as appropriate.
+    fn dec(&mut self, mode: &AddressingMode) -> u8 {
         let addr = self.get_operand_addr(mode);
-        let operand = self.mem_read(addr);
+        let mut operand = self.mem_read(addr);
 
+        operand = operand.wrapping_sub(1);
 
-        if compare_with >= operand {
-            self.set_carry_flag();
-        } 
-        else {
-            self.clear_carry_flag();
-        }
+        self.mem_write(addr, operand);
+        self.update_zero_and_negative_flag(operand);
 
-        self.update_zero_and_negative_flag(operand.wrapping_sub(compare_with));
+        operand
     }
 
     /// Load Accumulator
@@ -489,6 +492,24 @@ impl CPU {
         self.register_a = value;
         self.update_zero_and_negative_flag(self.register_a);
     }
+
+    /// Compare a memory held value with some data (e.g. registers) and
+    /// sets the zero, negative and carry flags as appropriate.
+    fn compare(&mut self, mode: &AddressingMode, compare_with: u8) {
+        let addr = self.get_operand_addr(mode);
+        let operand = self.mem_read(addr);
+
+
+        if compare_with >= operand {
+            self.set_carry_flag();
+        } 
+        else {
+            self.clear_carry_flag();
+        }
+
+        self.update_zero_and_negative_flag(operand.wrapping_sub(compare_with));
+    }
+
 
     /// Use for branching opcodes (e.g. BEQ, BNE, etc.) that use Relative Adressing Mode. 
     /// Such opcodes will contain a signed 8 bit relative offset (e.g. -128 to +127) which is 
