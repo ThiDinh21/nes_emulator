@@ -285,6 +285,10 @@ impl CPU {
         operand
     }
 
+    /// Bit Test
+    /// This instructions is used to test if one or more bits are set in a target memory location. 
+    /// The mask pattern in A is ANDed with the value in memory to set or clear the zero flag, but
+    /// the result is not kept. Bits 7 and 6 of the value from memory are copied into the N and V flags.
     pub fn bit(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         let operand = self.mem_read(addr);
