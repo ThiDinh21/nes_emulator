@@ -217,6 +217,14 @@ impl CPU {
                 0x70 => {
                     self.branch(self.status.contains(StatusFlags::OVERFLOW));
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLC
+                // CLC - Clear Carry Flag
+                // Set the carry flag to zero.
+                0x18 => self.status.remove(StatusFlags::CARRY),
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLD
+                // CLD - Clear Decimal Mode
+                // Set the decimal flag to zero.
+                0xD8 => self.status.remove(StatusFlags::DECIMAL),
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
                 // INX - Increment X Register
                 0xE8 => {
