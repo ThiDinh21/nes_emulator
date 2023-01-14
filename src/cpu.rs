@@ -172,12 +172,26 @@ impl CPU {
                 0x24 | 0x2C => {
                     self.bit(&opcode.mode);
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BMI
+                // BMI - Branch if Minus
+                // If the negative flag is set then add the relative displacement to the program counter 
+                // to cause a branch to a new location.
+                0x30 => {
+                    self.branch(self.status.contains(StatusFlags::NEGATIVE));
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BEQ
                 // BNE - Branch if Not Equal
                 // If the zero flag is clear then add the relative displacement to the program counter to 
                 // cause a branch to a new location.
                 0xD0 => {
                     self.branch(!self.status.contains(StatusFlags::ZERO));
+                }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BPL
+                // BPL - Branch if Positive
+                // If the negative flag is clear then add the relative displacement to the program counter 
+                // to cause a branch to a new location.
+                0x10 => {
+                    self.branch(!self.status.contains(StatusFlags::NEGATIVE));
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 // BRK - Force Interrupt
