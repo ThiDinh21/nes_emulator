@@ -233,6 +233,11 @@ impl CPU {
                 // CLV - Clear Overflow Flag
                 // Clears the overflow flag.
                 0xB8 => self.status.remove(StatusFlags::OVERFLOW),
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CMP
+                // CMP - Compare
+                0xC9 | 0xC5 |0xD5 |0xCD |0xDD | 0xD9 | 0xC1 |0xD1 => {
+                    self.compare(&opcode.mode, self.register_a);
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
                 // INX - Increment X Register
                 0xE8 => {
@@ -281,7 +286,7 @@ impl CPU {
     /// This instruction adds the contents of a memory location to the accumulator
     /// together with the carry bit. If overflow occurs the carry bit is set,
     /// this enables multiple byte addition to be performed.
-    pub fn adc(&mut self, mode: &AddressingMode) {
+    fn adc(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         let operand = self.mem_read(addr);
         self.add_to_register_a(operand);
@@ -290,7 +295,7 @@ impl CPU {
     /// Logical AND
     /// A logical AND is performed, bit by bit, on the accumulator contents using the
     /// contents of a byte of memory.
-    pub fn and(&mut self, mode: &AddressingMode) {
+    fn and(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         let operand = self.mem_read(addr);
         let result = self.register_a & operand;
@@ -302,7 +307,7 @@ impl CPU {
     /// Bit 0 is set to 0 and bit 7 is placed in the carry flag. The effect of this operation is
     /// to multiply the memory contents by 2 (ignoring 2's complement considerations), setting
     /// the carry if the result will not fit in 8 bits.
-    pub fn asl_accumulator(&mut self) {
+    fn asl_accumulator(&mut self) {
         if self.register_a >> 7 == 0 {
             self.clear_carry_flag();
         } else {
@@ -312,7 +317,7 @@ impl CPU {
     }
 
     /// Arithmetic Shift Left
-    pub fn asl(&mut self, mode: &AddressingMode) -> u8 {
+    fn asl(&mut self, mode: &AddressingMode) -> u8 {
         let addr = self.get_operand_addr(mode);
         let mut operand = self.mem_read(addr);
 
@@ -333,7 +338,7 @@ impl CPU {
     /// This instructions is used to test if one or more bits are set in a target memory location. 
     /// The mask pattern in A is ANDed with the value in memory to set or clear the zero flag, but
     /// the result is not kept. Bits 7 and 6 of the value from memory are copied into the N and V flags.
-    pub fn bit(&mut self, mode: &AddressingMode) {
+    fn bit(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         let operand = self.mem_read(addr);
 
@@ -346,6 +351,21 @@ impl CPU {
 
         self.status.set(StatusFlags::OVERFLOW, operand & 0b0100_0000 > 0);
         self.status.set(StatusFlags::NEGATIVE, operand & 0b1000_0000 > 0);
+    }
+
+    fn compare(&mut self, mode: &AddressingMode, compare_with: u8) {
+        let addr = self.get_operand_addr(mode);
+        let operand = self.mem_read(addr);
+
+
+        if compare_with >= operand {
+            self.set_carry_flag();
+        } 
+        else {
+            self.clear_carry_flag();
+        }
+
+        self.update_zero_and_negative_flag(operand.wrapping_sub(compare_with));
     }
 
     /// Load Accumulator
