@@ -265,6 +265,10 @@ impl CPU {
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#DEY
                 // DEY - Decrement Y Register
                 0x88 => self.dey(),
+                // EOR - Exclusive OR
+                0x49 | 0x45 | 0x55 | 0x4D | 0x5D | 0x59 | 0x41 | 0x51 => {
+                    self.eor(&opcode.mode);
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
                 // INX - Increment X Register
                 0xE8 => {
@@ -407,6 +411,15 @@ impl CPU {
     fn dey(&mut self) {
         self.register_y = self.register_y.wrapping_sub(1);
         self.update_zero_and_negative_flag(self.register_y);
+    }
+
+    /// Exclusive OR
+    /// An exclusive OR is performed, bit by bit, on the accumulator contents using the contents 
+    /// of a byte of memory.
+    fn eor(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        let operand = self.mem_read(addr);
+        self.set_register_a(self.register_a ^ operand);
     }
 
     /// Load Accumulator
