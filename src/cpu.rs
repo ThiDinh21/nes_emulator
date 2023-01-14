@@ -18,8 +18,8 @@ bitflags! {
     pub struct StatusFlags: u8 {
         const CARRY = 0b0000_0001;
         const ZERO = 0b0000_0010;
-        const INTERUPT = 0b0000_0100;
-        const DECIMAL = 0b0000_1000;
+        const INTERUPT_DISABLE = 0b0000_0100;
+        const DECIMAL_MODE = 0b0000_1000;
         const BREAK1  = 0b0001_0000;
         const BREAK2  = 0b0010_0000;
         const OVERFLOW = 0b0100_0000;
@@ -224,11 +224,11 @@ impl CPU {
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLD
                 // CLD - Clear Decimal Mode
                 // Set the decimal flag to zero.
-                0xD8 => self.status.remove(StatusFlags::DECIMAL),
+                0xD8 => self.status.remove(StatusFlags::DECIMAL_MODE),
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLI
                 // CLI - Clear Interrupt Disable
                 // Clears the interrupt disable flag allowing normal interrupt requests to be serviced.
-                0x58 => self.status.remove(StatusFlags::INTERUPT),
+                0x58 => self.status.remove(StatusFlags::INTERUPT_DISABLE),
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLV
                 // CLV - Clear Overflow Flag
                 // Clears the overflow flag.
