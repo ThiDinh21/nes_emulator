@@ -128,17 +128,16 @@ impl CPU {
                 .expect(&format!("OpCode {:x} is not recognized", code));
 
             match code {
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#ADC
                 // ADC - Add with Carry
                 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {
                     self.adc(&opcode.mode);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#AND
+
                 // AND - Logical AND
                 0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => {
                     self.and(&opcode.mode);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#ASL
+
                 // ASL - Arithmetic Shift Left
                 0x0A /* Accumulator mode */ => {
                     self.asl_accumulator();
@@ -146,54 +145,54 @@ impl CPU {
                 0x06 | 0x16 | 0x0E | 0x1E => {
                     self.asl(&opcode.mode);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BCC
+
                 // BCC - Branch if Carry Clear
                 // If the carry flag is clear then add the relative displacement to the program counter to
                 // cause a branch to a new location.
                 0x90 => {
                     self.branch(!self.status.contains(StatusFlags::CARRY));                        
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BCS
+
                 // BCS - Branch if Carry Set
                 // If the carry flag is set then add the relative displacement to the program counter to
                 // cause a branch to a new location.
                 0xB0 => {
                     self.branch(self.status.contains(StatusFlags::CARRY));                        
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BEQ
+
                 // BEQ - Branch if Equal
                 // If the zero flag is set then add the relative displacement to the program counter to 
                 // cause a branch to a new location.
                 0xF0 => {
                     self.branch(self.status.contains(StatusFlags::ZERO));
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BIT
+
                 // BIT - Bit Test
                 0x24 | 0x2C => {
                     self.bit(&opcode.mode);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BMI
+
                 // BMI - Branch if Minus
                 // If the negative flag is set then add the relative displacement to the program counter 
                 // to cause a branch to a new location.
                 0x30 => {
                     self.branch(self.status.contains(StatusFlags::NEGATIVE));
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BEQ
+
                 // BNE - Branch if Not Equal
                 // If the zero flag is clear then add the relative displacement to the program counter to 
                 // cause a branch to a new location.
                 0xD0 => {
                     self.branch(!self.status.contains(StatusFlags::ZERO));
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BPL
+
                 // BPL - Branch if Positive
                 // If the negative flag is clear then add the relative displacement to the program counter 
                 // to cause a branch to a new location.
                 0x10 => {
                     self.branch(!self.status.contains(StatusFlags::NEGATIVE));
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
+
                 // BRK - Force Interrupt
                 // The BRK instruction forces the generation of an interrupt request.
                 // The program counter and processor status are pushed on the stack then
@@ -203,89 +202,90 @@ impl CPU {
                     self.status.insert(StatusFlags::BREAK1);
                     return;
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BVC
+
                 // BVC - Branch if Overflow Clear
                 // If the overflow flag is clear then add the relative displacement to the program counter 
                 // to cause a branch to a new location.
                 0x50 => {
                     self.branch(!self.status.contains(StatusFlags::OVERFLOW));
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BVS
+
                 // BVS - Branch if Overflow Set
                 // If the overflow flag is set then add the relative displacement to the program counter 
                 // to cause a branch to a new location.
                 0x70 => {
                     self.branch(self.status.contains(StatusFlags::OVERFLOW));
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLC
+
                 // CLC - Clear Carry Flag
                 // Set the carry flag to zero.
                 0x18 => self.clear_carry_flag(),
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLD
+
                 // CLD - Clear Decimal Mode
                 // Set the decimal flag to zero.
                 0xD8 => self.status.remove(StatusFlags::DECIMAL_MODE),
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLI
+
                 // CLI - Clear Interrupt Disable
                 // Clears the interrupt disable flag allowing normal interrupt requests to be serviced.
                 0x58 => self.status.remove(StatusFlags::INTERUPT_DISABLE),
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLV
+
                 // CLV - Clear Overflow Flag
                 // Clears the overflow flag.
                 0xB8 => self.status.remove(StatusFlags::OVERFLOW),
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CMP
+
                 // CMP - Compare
                 // Compares the contents of the accumulator with another memory held value and sets
                 // the zero and carry flags as appropriate.
                 0xC9 | 0xC5 |0xD5 |0xCD |0xDD | 0xD9 | 0xC1 |0xD1 => {
                     self.compare(&opcode.mode, self.register_a);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CPX
+
                 // CPX - Compare X Register
                 // Compares the contents of the X register with another memory held value and sets
                 // the zero and carry flags as appropriate.
                 0xE0 | 0xE4 | 0xEC => {
                     self.compare(&opcode.mode, self.register_x);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CPY
+
                 // CPY - Compare Y Register
                 // Compares the contents of the Y register with another memory held value and sets
                 // the zero and carry flags as appropriate.
                 0xC0 | 0xC4 | 0xCC => {
                     self.compare(&opcode.mode, self.register_y);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#DEC
+
                 // DEC - Decrement Memory
                 0xC6 | 0xD6 | 0xCE | 0xDE => {
                     self.dec(&opcode.mode);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#DEX
+
                 // DEX - Decrement X Register
                 0xCA => self.dex(),
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#DEY
+
                 // DEY - Decrement Y Register
                 0x88 => self.dey(),
+
                 // EOR - Exclusive OR
                 0x49 | 0x45 | 0x55 | 0x4D | 0x5D | 0x59 | 0x41 | 0x51 => {
                     self.eor(&opcode.mode);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
+
                 // INX - Increment X Register
                 0xE8 => {
                     self.register_x = self.register_x.wrapping_add(1);
                     self.update_zero_and_negative_flag(self.register_x);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDA
+
                 // LDA - Load Accumulator
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#STA
+
                 // STA - Store Accumulator
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
                 }
-                // https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX
+
                 // TAX - Transfer Accumulator to X
                 0xAA => self.tax(),
                 _ => todo!(""),
@@ -297,8 +297,8 @@ impl CPU {
         }
     }
 
-    /// reset the state (registers and flags)
-    /// set program_counter to the 16-bit address that is stored at 0xFFFC
+    /// Reset the state (registers and flags)
+    /// Set program_counter to the 16-bit address that is stored at 0xFFFC
     pub fn reset(&mut self) {
         self.register_a = 0;
         self.register_x = 0;
@@ -307,6 +307,7 @@ impl CPU {
         self.program_counter = self.mem_read_u16(0xFFFC);
     }
 
+    /// Load catridge's program to memory
     pub fn load(&mut self, program: Vec<u8>) {
         // [0x8000 .. 0xFFFF] is reserved for program's ROM
         self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
@@ -334,7 +335,7 @@ impl CPU {
     }
 
     /// Arithmetic Shift Left
-    /// This operation shifts all the bits of the accumulator or memory contents one bit left.
+    /// This operation shifts all the bits of the accumulator one bit left.
     /// Bit 0 is set to 0 and bit 7 is placed in the carry flag. The effect of this operation is
     /// to multiply the memory contents by 2 (ignoring 2's complement considerations), setting
     /// the carry if the result will not fit in 8 bits.
@@ -348,6 +349,10 @@ impl CPU {
     }
 
     /// Arithmetic Shift Left
+    /// This operation shifts all the bits of memory contents one bit left.
+    /// Bit 0 is set to 0 and bit 7 is placed in the carry flag. The effect of this operation is
+    /// to multiply the memory contents by 2 (ignoring 2's complement considerations), setting
+    /// the carry if the result will not fit in 8 bits.
     fn asl(&mut self, mode: &AddressingMode) -> u8 {
         let addr = self.get_operand_addr(mode);
         let mut operand = self.mem_read(addr);
