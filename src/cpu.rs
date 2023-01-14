@@ -283,6 +283,12 @@ impl CPU {
                     self.update_zero_and_negative_flag(self.register_x);
                 }
 
+                // INY - Increment Y Register
+                0xC8 => {
+                    self.register_y = self.register_y.wrapping_add(1);
+                    self.update_zero_and_negative_flag(self.register_y);
+                }
+
                 // LDA - Load Accumulator
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
