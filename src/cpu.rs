@@ -220,7 +220,7 @@ impl CPU {
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLC
                 // CLC - Clear Carry Flag
                 // Set the carry flag to zero.
-                0x18 => self.status.remove(StatusFlags::CARRY),
+                0x18 => self.clear_carry_flag(),
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLD
                 // CLD - Clear Decimal Mode
                 // Set the decimal flag to zero.
