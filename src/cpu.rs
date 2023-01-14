@@ -272,6 +272,11 @@ impl CPU {
                     self.eor(&opcode.mode);
                 }
 
+                // INC - Increment Memory
+                0xE6 | 0xF6 | 0xEE |0xFE  => {
+                    self.inc(&opcode.mode);
+                }
+
                 // INX - Increment X Register
                 0xE8 => {
                     self.register_x = self.register_x.wrapping_add(1);
@@ -427,6 +432,21 @@ impl CPU {
         let addr = self.get_operand_addr(mode);
         let operand = self.mem_read(addr);
         self.set_register_a(self.register_a ^ operand);
+    }
+
+    /// Increment Memory
+    /// Adds one to the value held at a specified memory location setting the zero and negative 
+    /// flags as appropriate.
+    fn inc(&mut self, mode: &AddressingMode) -> u8 {
+        let addr = self.get_operand_addr(mode);
+        let mut operand = self.mem_read(addr);
+
+        operand = operand.wrapping_add(1);
+
+        self.mem_write(addr, operand);
+        self.update_zero_and_negative_flag(operand);
+
+        operand
     }
 
     /// Load Accumulator

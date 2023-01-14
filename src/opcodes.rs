@@ -122,6 +122,11 @@ lazy_static! {
         OpCode::new(0x59, "EOR", 3, 4 /* +1 if page crossed */, AddressingMode::Absolute_Y),
         OpCode::new(0x41, "EOR", 2, 6, AddressingMode::Indirect_X),
         OpCode::new(0x51, "EOR", 2, 5 /* +1 if page crossed */, AddressingMode::Indirect_Y),
+        // INC
+        OpCode::new(0xE6, "INC", 2, 5, AddressingMode::ZeroPage),
+        OpCode::new(0xF6, "INC", 2, 6, AddressingMode::ZeroPage_X),
+        OpCode::new(0xEE, "INC", 3, 6, AddressingMode::Absolute),
+        OpCode::new(0xFE, "INC", 3, 7, AddressingMode::Absolute_X),
         // INX
         OpCode::new(0xE8, "INX", 1, 2, AddressingMode::NoneAddressing),
         // LDA
