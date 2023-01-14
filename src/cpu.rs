@@ -167,6 +167,11 @@ impl CPU {
                 0xF0 => {
                     self.branch(self.status.contains(StatusFlags::ZERO));
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BIT
+                // BIT - Bit Test
+                0x24 | 0x2C => {
+                    self.bit(&opcode.mode);
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BEQ
                 // BNE - Branch if Not Equal
                 // If the zero flag is clear then add the relative displacement to the program counter to 
@@ -278,6 +283,21 @@ impl CPU {
         self.update_zero_and_negative_flag(operand);
 
         operand
+    }
+
+    pub fn bit(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        let operand = self.mem_read(addr);
+
+        if self.register_a & operand == 0 {
+            self.status.insert(StatusFlags::ZERO);
+        }
+        else {
+            self.status.remove(StatusFlags::ZERO);
+        }
+
+        self.status.set(StatusFlags::OVERFLOW, operand & 0b0100_0000 > 0);
+        self.status.set(StatusFlags::NEGATIVE, operand & 0b1000_0000 > 0);
     }
 
     /// Load Accumulator

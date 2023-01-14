@@ -57,6 +57,9 @@ lazy_static! {
         // BEQ
         OpCode::new(0xF0, "BEQ", 2, 2 /* +1 if branch succeeds
                                          +2 if to a new page */, AddressingMode::NoneAddressing),
+        // BIT
+        OpCode::new(0x24, "BIT", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0x2C, "BIT", 3, 4, AddressingMode::Absolute),
         // BNE
         OpCode::new(0xD0, "BNE", 2, 2 /* +1 if branch succeeds
                                          +2 if to a new page */, AddressingMode::NoneAddressing),
