@@ -181,7 +181,7 @@ impl CPU {
                 // If the zero flag is clear then add the relative displacement to the program counter to 
                 // cause a branch to a new location.
                 0xD0 => {
-                    self.branch(self.status.contains(StatusFlags::ZERO));
+                    self.branch(!self.status.contains(StatusFlags::ZERO));
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#BRK
                 // BRK - Force Interrupt
