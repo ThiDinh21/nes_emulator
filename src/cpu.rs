@@ -117,13 +117,13 @@ impl CPU {
     // - Execute the instruction
     // - Repeat the cycle
     pub fn run(&mut self) {
-        let ref opcodes = *opcodes::OPCODES_MAP;
+        let ref all_opcodes = *opcodes::OPCODES_MAP;
         loop {
             let code = self.mem_read(self.program_counter);
             self.program_counter += 1;
             let program_counter_state = self.program_counter;
 
-            let opcode = opcodes
+            let opcode = all_opcodes
                 .get(&code)
                 .expect(&format!("OpCode {:x} is not recognized", code));
 
