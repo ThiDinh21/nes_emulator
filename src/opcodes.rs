@@ -71,6 +71,12 @@ lazy_static! {
                                          +2 if to a new page */, AddressingMode::NoneAddressing),
         // BRK
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
+        // BVC
+        OpCode::new(0x50, "BVC", 2, 2 /* +1 if branch succeeds
+                                         +2 if to a new page */, AddressingMode::NoneAddressing),
+        // BVS
+        OpCode::new(0x70, "BVS", 2, 2 /* +1 if branch succeeds
+                                         +2 if to a new page */, AddressingMode::NoneAddressing),
         // INX
         OpCode::new(0xE8, "INX", 1, 2, AddressingMode::NoneAddressing),
         // LDA

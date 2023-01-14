@@ -203,6 +203,20 @@ impl CPU {
                     self.status.insert(StatusFlags::BREAK1);
                     return;
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BVC
+                // BVC - Branch if Overflow Clear
+                // If the overflow flag is clear then add the relative displacement to the program counter 
+                // to cause a branch to a new location.
+                0x50 => {
+                    self.branch(!self.status.contains(StatusFlags::OVERFLOW));
+                }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#BVS
+                // BVS - Branch if Overflow Set
+                // If the overflow flag is set then add the relative displacement to the program counter 
+                // to cause a branch to a new location.
+                0x70 => {
+                    self.branch(self.status.contains(StatusFlags::OVERFLOW));
+                }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
                 // INX - Increment X Register
                 0xE8 => {
