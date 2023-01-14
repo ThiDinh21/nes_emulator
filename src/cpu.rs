@@ -130,25 +130,16 @@ impl CPU {
             match code {
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#ADC
                 // ADC - Add with Carry
-                // This instruction adds the contents of a memory location to the accumulator
-                // together with the carry bit. If overflow occurs the carry bit is set, this enables
-                // multiple byte addition to be performed.
                 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {
                     self.adc(&opcode.mode);
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#AND
                 // AND - Logical AND
-                // A logical AND is performed, bit by bit, on the accumulator contents using the contents
-                // of a byte of memory.
                 0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => {
                     self.and(&opcode.mode);
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#ASL
                 // ASL - Arithmetic Shift Left
-                // This operation shifts all the bits of the accumulator or memory contents one bit left.
-                // Bit 0 is set to 0 and bit 7 is placed in the carry flag. The effect of this operation is
-                // to multiply the memory contents by 2 (ignoring 2's complement considerations), setting
-                // the carry if the result will not fit in 8 bits.
                 0x0A /* Accumulator mode */ => {
                     self.asl_accumulator();
                 }
@@ -195,7 +186,6 @@ impl CPU {
                 }
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
                 // INX - Increment X Register
-                // Adds one to the X register setting the zero and negative flags as appropriate.
                 0xE8 => {
                     self.register_x = self.register_x.wrapping_add(1);
                     self.update_zero_and_negative_flag(self.register_x);
@@ -250,7 +240,7 @@ impl CPU {
 
     /// Logical AND
     /// A logical AND is performed, bit by bit, on the accumulator contents using the
-    ///  contents of a byte of memory.
+    /// contents of a byte of memory.
     pub fn and(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         let operand = self.mem_read(addr);
