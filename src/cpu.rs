@@ -127,6 +127,8 @@ impl CPU {
                 .get(&code)
                 .expect(&format!("OpCode {:x} is not recognized", code));
 
+            // All opcodes:
+            // https://www.nesdev.org/obelisk-6502-guide/reference.html
             match code {
                 // ADC - Add with Carry
                 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {

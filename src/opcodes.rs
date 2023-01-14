@@ -23,6 +23,8 @@ impl OpCode {
 }
 
 lazy_static! {
+    /// All opcodes:
+    /// https://www.nesdev.org/obelisk-6502-guide/reference.html
     pub static ref CPU_OPCODES: Vec<OpCode> = vec![
         // ADC
         OpCode::new(0x69, "ADC", 2, 2, AddressingMode::Immediate),
