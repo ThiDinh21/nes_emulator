@@ -225,6 +225,14 @@ impl CPU {
                 // CLD - Clear Decimal Mode
                 // Set the decimal flag to zero.
                 0xD8 => self.status.remove(StatusFlags::DECIMAL),
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLI
+                // CLI - Clear Interrupt Disable
+                // Clears the interrupt disable flag allowing normal interrupt requests to be serviced.
+                0x58 => self.status.remove(StatusFlags::INTERUPT),
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#CLV
+                // CLV - Clear Overflow Flag
+                // Clears the overflow flag.
+                0xB8 => self.status.remove(StatusFlags::OVERFLOW),
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
                 // INX - Increment X Register
                 0xE8 => {
