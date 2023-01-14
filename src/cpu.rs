@@ -259,6 +259,12 @@ impl CPU {
                 0xC6 | 0xD6 | 0xCE | 0xDE => {
                     self.dec(&opcode.mode);
                 }
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#DEX
+                // DEX - Decrement X Register
+                0xCA => self.dex(),
+                // https://www.nesdev.org/obelisk-6502-guide/reference.html#DEY
+                // DEY - Decrement Y Register
+                0x88 => self.dey(),
                 // https://www.nesdev.org/obelisk-6502-guide/reference.html#INX
                 // INX - Increment X Register
                 0xE8 => {
@@ -387,6 +393,20 @@ impl CPU {
         self.update_zero_and_negative_flag(operand);
 
         operand
+    }
+
+    /// Decrement X Register
+    /// Subtracts one from the X register setting the zero and negative flags as appropriate.
+    fn dex(&mut self) {
+        self.register_x = self.register_x.wrapping_sub(1);
+        self.update_zero_and_negative_flag(self.register_x);
+    }
+
+    /// Decrement Y Register
+    /// Subtracts one from the Y register setting the zero and negative flags as appropriate.
+    fn dey(&mut self) {
+        self.register_y = self.register_y.wrapping_sub(1);
+        self.update_zero_and_negative_flag(self.register_y);
     }
 
     /// Load Accumulator
