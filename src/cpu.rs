@@ -327,6 +327,12 @@ impl CPU {
                     self.ldy(&opcode.mode);
                 }
 
+                // LSR - Logical Shift Right
+                0x4A /* Accumulator mode */  => self.lsr_accumulator(),
+                0x46 | 0x56 | 0x4E | 0x5E => {
+                    self.lsr(&opcode.mode);
+                }
+
                 // STA - Store Accumulator
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -587,6 +593,41 @@ impl CPU {
     fn sta(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         self.mem_write(addr, self.register_a);
+    }
+
+    /// Logical Shift Right
+    /// Each of the bits in A is shift one place to the right. The bit that was in bit 0 is 
+    /// shifted into the carry flag. Bit 7 is set to zero.
+    fn lsr_accumulator(&mut self) {
+        let bit_0 = self.register_a & 0b0000_0001;
+
+        if bit_0 == 0 {
+            self.clear_carry_flag();
+        }
+        else {
+            self.set_carry_flag();
+        }
+
+        self.set_register_a(self.register_a >> 1);
+    }
+
+    /// Logical Shift Right
+    /// Each of the bits of a memory content is shift one place to the right. The bit that was in bit 0 is 
+    /// shifted into the carry flag. Bit 7 is set to zero.
+    fn lsr(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        let operand = self.mem_read(addr);
+
+        let bit_0 = operand & 0b0000_0001;
+
+        if bit_0 == 0 {
+            self.clear_carry_flag();
+        }
+        else {
+            self.set_carry_flag();
+        }
+
+        self.mem_write(addr, operand >> 1);
     }
 
     /// Transfer Accumulator to X
