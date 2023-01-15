@@ -333,6 +333,11 @@ impl CPU {
                     self.lsr(&opcode.mode);
                 }
 
+                // NOP - No Operation
+                0xEA => {
+                    /* Do nothing */
+                }
+
                 // STA - Store Accumulator
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
