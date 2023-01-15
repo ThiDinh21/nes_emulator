@@ -59,6 +59,7 @@ pub struct CPU {
     pub register_y: u8,
     pub status: StatusFlags,
     pub program_counter: u16,
+    pub stack_ptr: u8,
     /// https://www.nesdev.org/wiki/CPU_memory_map
     pub memory: [u8; 0xFFFF],
 }
@@ -76,7 +77,7 @@ trait Mem {
     }
 
     fn mem_write_u16(&mut self, addr: u16, data: u16) {
-        let bytes = data.to_le_bytes();
+        let bytes: [u8; 2] = data.to_le_bytes();
 
         self.mem_write(addr, bytes[0]);
         self.mem_write(addr + 1, bytes[1]);
@@ -94,6 +95,10 @@ impl Mem for CPU {
 }
 
 impl CPU {
+    // https://www.nesdev.org/wiki/Stack
+    const STACK_BOTTOM: u16 = 0x0100;
+    const STACK_PTR_RESET: u8 = 0xFD;
+
     pub fn new() -> Self {
         CPU {
             register_a: 0,
@@ -102,6 +107,7 @@ impl CPU {
             status: StatusFlags::from_bits_truncate(0b0010_0100),
             program_counter: 0,
             memory: [0; 0xFFFF],
+            stack_ptr: CPU::STACK_PTR_RESET,
         }
     }
 
@@ -330,6 +336,7 @@ impl CPU {
         self.register_y = 0;
         self.status = StatusFlags::from_bits_truncate(0b0010_0100);
         self.program_counter = self.mem_read_u16(0xFFFC);
+        self.stack_ptr = CPU::STACK_PTR_RESET;
     }
 
     /// Load catridge's program to memory
@@ -338,6 +345,48 @@ impl CPU {
         self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
         self.mem_write_u16(0xFFFC, 0x8000);
     }
+
+    /* STACK FUNCTIONS */
+    fn stack_push(&mut self, data: u8) {
+        let stack_addr = CPU::STACK_BOTTOM.wrapping_add(self.stack_ptr as u16);
+        self.mem_write(stack_addr, data);
+
+        let (new_stack_ptr,is_overflowed) = self.stack_ptr.overflowing_sub(1);
+        if is_overflowed {
+            panic!("Stack overflowed!!!");
+        }
+        
+        self.stack_ptr = new_stack_ptr;
+    }
+
+    fn stack_pop(&mut self) -> u8 {
+        let (new_stack_ptr,is_underflowed) = self.stack_ptr.overflowing_add(1);
+        if is_underflowed {
+            panic!("Stack underflowed!!!");
+        }
+        
+        self.stack_ptr = new_stack_ptr;
+
+        let stack_addr = CPU::STACK_BOTTOM.wrapping_add(self.stack_ptr as u16);
+        self.mem_read(stack_addr)
+    }
+
+    fn stack_push_u16(&mut self, data: u16) {
+        let lsb = (data >> 8) as u8;
+        let msb = (data & 0x00FF) as u8;
+
+        self.stack_push(msb);
+        self.stack_push(lsb);
+    }
+
+    fn stack_pop_u16(&mut self) -> u16 {
+        let lsb = self.stack_pop();
+        let msb = self.stack_pop();
+
+        u16::from_le_bytes([lsb, msb])
+    }
+
+    /* OPCODES */
 
     /// Add with Carry
     /// This instruction adds the contents of a memory location to the accumulator
@@ -513,6 +562,8 @@ impl CPU {
         self.register_x = self.register_a;
         self.update_zero_and_negative_flag(self.register_x);
     }
+
+    /* OPCODE HELPERS */
 
     /// See more: https://skilldrick.github.io/easy6502/#addressing
     fn get_operand_addr(&self, mode: &AddressingMode) -> u16 {
