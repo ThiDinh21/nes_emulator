@@ -378,6 +378,11 @@ impl CPU {
                 // RTS - Return from Subroutine
                 0x60 => self.rts(),
 
+                // SBC - Subtract with Carry
+                0xE9 | 0xE5 | 0xF5 | 0xED | 0xFD | 0xF9 | 0xE1 | 0xF1 => {
+                    self.sbc(&opcode.mode);
+                }
+
                 // STA - Store Accumulator
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -816,6 +821,17 @@ impl CPU {
     /// It pulls the program counter (minus one) from the stack.
     fn rts(&mut self) {
         self.program_counter = self.stack_pop_u16() + 1;
+    }
+
+    /// Subtract with Carry
+    /// This instruction subtracts the contents of a memory location to the accumulator together 
+    /// with the not of the carry bit. If overflow occurs the carry bit is clear, this enables 
+    /// multiple byte subtraction to be performed.
+    fn sbc(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        let operand = self.mem_read(addr);
+        let operand = (operand as i8).wrapping_neg().wrapping_sub(1);
+        self.add_to_register_a(operand as u8);
     }
 
     /// Store Accumulator
