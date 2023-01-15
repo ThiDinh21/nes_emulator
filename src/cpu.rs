@@ -311,8 +311,20 @@ impl CPU {
                 },
 
                 // LDA - Load Accumulator
+                // The JSR instruction pushes the address (minus one) of the return point on to the stack
+                // and then sets the program counter to the target memory address.
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
+                }
+
+                // LDX - Load X Register
+                0xA2 | 0xA6 | 0xB6 | 0xAE | 0xBE => {
+                    self.ldx(&opcode.mode);
+                }
+
+                // LDY - Load Y Register
+                0xA0 | 0xA4 | 0xB4 | 0xAC | 0xBC => {
+                    self.ldy(&opcode.mode);
                 }
 
                 // STA - Store Accumulator
@@ -552,6 +564,24 @@ impl CPU {
         self.set_register_a(value);
     }
 
+    /// Load X Register
+    /// Loads a byte of memory into the X register setting the zero and negative
+    /// flags as appropriate.
+    fn ldx(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        let value = self.mem_read(addr);
+        self.set_register_x(value);
+    }
+
+    /// Load Y Register
+    /// Loads a byte of memory into the Y register setting the zero and negative
+    /// flags as appropriate.
+    fn ldy(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        let value = self.mem_read(addr);
+        self.set_register_y(value);
+    }
+
     /// Store Accumulator
     /// Stores the contents of the accumulator into memory.
     fn sta(&mut self, mode: &AddressingMode) {
@@ -647,6 +677,18 @@ impl CPU {
     fn set_register_a(&mut self, value: u8) {
         self.register_a = value;
         self.update_zero_and_negative_flag(self.register_a);
+    }
+
+    /// Set value to register X and set Zero and Negative flag if needed.
+    fn set_register_x(&mut self, value: u8) {
+        self.register_x = value;
+        self.update_zero_and_negative_flag(self.register_x);
+    }
+
+    /// Set value to register X and set Zero and Negative flag if needed.
+    fn set_register_y(&mut self, value: u8) {
+        self.register_y = value;
+        self.update_zero_and_negative_flag(self.register_y);
     }
 
     /// Compare a memory held value with some data (e.g. registers) and
