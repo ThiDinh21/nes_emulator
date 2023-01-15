@@ -207,6 +207,12 @@ lazy_static! {
         OpCode::new(0xF9, "SBC", 3, 4 /* +1 if page crossed */, AddressingMode::Absolute_Y),
         OpCode::new(0xE1, "SBC", 2, 6, AddressingMode::Indirect_X),
         OpCode::new(0xF1, "SBC", 2, 5 /* +1 if page crossed */, AddressingMode::Indirect_Y),
+        // SEC
+        OpCode::new(0x38, "SEC", 1, 2, AddressingMode::NoneAddressing),
+        // SED
+        OpCode::new(0xF8, "SED", 1, 2, AddressingMode::NoneAddressing),
+        // SEI
+        OpCode::new(0x78, "SEI", 1, 2, AddressingMode::NoneAddressing),
         // STA
         OpCode::new(0x85, "STA", 2, 2, AddressingMode::ZeroPage),
         OpCode::new(0x95, "STA", 2, 2, AddressingMode::ZeroPage_X),
@@ -215,8 +221,15 @@ lazy_static! {
         OpCode::new(0x99, "STA", 3, 3, AddressingMode::Absolute_Y),
         OpCode::new(0x81, "STA", 2, 2, AddressingMode::Indirect_X),
         OpCode::new(0x91, "STA", 2, 2, AddressingMode::Indirect_Y),
+        // STX
+        // STY
         // TAX
         OpCode::new(0xAA, "TAX", 1, 2, AddressingMode::NoneAddressing),
+        // TAY
+        // TSX
+        // TXA
+        // TXS
+        // TYA
     ];
 
     pub static ref OPCODES_MAP: HashMap<u8, &'static OpCode> = {

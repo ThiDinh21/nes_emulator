@@ -383,6 +383,15 @@ impl CPU {
                     self.sbc(&opcode.mode);
                 }
 
+                // SEC - Set Carry Flag
+                0x38 => self.set_carry_flag(),
+
+                // SED - Set Decimal Flag
+                0xF8 => self.status.insert(StatusFlags::DECIMAL_MODE),
+
+                // SEI - Set Interrupt Disable
+                0x78 => self.status.insert(StatusFlags::INTERUPT_DISABLE),
+
                 // STA - Store Accumulator
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
