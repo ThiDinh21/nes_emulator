@@ -397,6 +397,16 @@ impl CPU {
                     self.sta(&opcode.mode);
                 }
 
+                // STX - Store X Register
+                0x86 | 0x96 | 0x8E => {
+                    self.stx(&opcode.mode);
+                }
+
+                // STY - Store Y Register
+                0x84 | 0x94 | 0x8C => {
+                    self.sty(&opcode.mode);
+                }
+
                 // TAX - Transfer Accumulator to X
                 0xAA => self.tax(),
 
@@ -848,6 +858,20 @@ impl CPU {
     fn sta(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         self.mem_write(addr, self.register_a);
+    }
+
+    /// Store X Register
+    /// Stores the contents of the X register into memory.
+    fn stx(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        self.mem_write(addr, self.register_x);
+    }
+
+    /// Store Y Register
+    /// Stores the contents of the Y register into memory.
+    fn sty(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        self.mem_write(addr, self.register_y);
     }
 
     /// Transfer Accumulator to X
