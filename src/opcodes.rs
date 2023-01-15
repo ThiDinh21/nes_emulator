@@ -232,6 +232,7 @@ lazy_static! {
         // TAX
         OpCode::new(0xAA, "TAX", 1, 2, AddressingMode::NoneAddressing),
         // TAY
+        OpCode::new(0xA8, "TAY", 1, 2, AddressingMode::NoneAddressing),
         // TSX
         // TXA
         // TXS

@@ -410,6 +410,9 @@ impl CPU {
                 // TAX - Transfer Accumulator to X
                 0xAA => self.tax(),
 
+                // TAY - Transfer Accumulator to Y
+                0xA8 => self.tay(),
+
                 _ => todo!(""),
             }
 
@@ -878,8 +881,14 @@ impl CPU {
     /// Copies the current contents of the accumulator into the X register and sets
     /// the zero and negative flags as appropriate.
     fn tax(&mut self) {
-        self.register_x = self.register_a;
-        self.update_zero_and_negative_flag(self.register_x);
+        self.set_register_x(self.register_a);
+    }
+
+    /// Transfer Accumulator to Y
+    /// Copies the current contents of the accumulator into the Y register and sets
+    /// the zero and negative flags as appropriate.
+    fn tay(&mut self) {
+        self.set_register_y(self.register_a);
     }
 
     /* OPCODE HELPERS */
