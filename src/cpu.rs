@@ -372,7 +372,11 @@ impl CPU {
                     self.ror(&opcode.mode);
                 }
 
-                // ROR - Rotate Right
+                // RTI - Return from Interrupt
+                0x40 => self.rti(),
+
+                // RTS - Return from Subroutine
+                0x60 => self.rts(),
 
                 // STA - Store Accumulator
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
@@ -795,6 +799,23 @@ impl CPU {
         self.mem_write(addr, data);
         self.update_zero_and_negative_flag(data);
         data
+    }
+
+    /// Return from Interrupt
+    /// The RTI instruction is used at the end of an interrupt processing routine. 
+    /// It pulls the processor flags from the stack followed by the program counter.
+    fn rti(&mut self) {
+        self.status.bits = self.stack_pop();
+        self.status.remove(StatusFlags::BREAK1);
+        self.status.insert(StatusFlags::BREAK2);
+        self.program_counter = self.stack_pop_u16();
+    }
+
+    /// Return from Subroutine
+    /// The RTS instruction is used at the end of a subroutine to return to the calling routine. 
+    /// It pulls the program counter (minus one) from the stack.
+    fn rts(&mut self) {
+        self.program_counter = self.stack_pop_u16() + 1;
     }
 
     /// Store Accumulator
