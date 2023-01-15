@@ -338,6 +338,11 @@ impl CPU {
                     /* Do nothing */
                 }
 
+                // ORA - Logical Inclusive OR
+                0x09 | 0x05 | 0x15 | 0x0D | 0x1D | 0x19 | 0x01 | 0x11 => {
+                    self.ora(&opcode.mode);
+                }
+
                 // STA - Store Accumulator
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -633,6 +638,15 @@ impl CPU {
         }
 
         self.mem_write(addr, operand >> 1);
+    }
+
+    /// Logical Inclusive OR
+    /// An inclusive OR is performed, bit by bit, on the accumulator contents using the contents of a byte of memory.
+    fn ora(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        let operand = self.mem_read(addr);
+
+        self.set_register_a(self.register_a | operand);
     }
 
     /// Transfer Accumulator to X
