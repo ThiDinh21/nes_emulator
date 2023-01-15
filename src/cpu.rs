@@ -297,6 +297,9 @@ impl CPU {
                 }
                 0x6C /* Indirect */ => self.indirect_jmp(),
 
+                // JSR - Jump to Subroutine
+                0x20 => todo!("implement JSR"),
+
                 // LDA - Load Accumulator
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
