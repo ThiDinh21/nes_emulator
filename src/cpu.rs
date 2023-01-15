@@ -413,6 +413,10 @@ impl CPU {
                 // TAY - Transfer Accumulator to Y
                 0xA8 => self.tay(),
 
+                0xBA => self.tsx(),
+
+                0x9A => self.txs(),
+
                 _ => todo!(""),
             }
 
@@ -889,6 +893,19 @@ impl CPU {
     /// the zero and negative flags as appropriate.
     fn tay(&mut self) {
         self.set_register_y(self.register_a);
+    }
+
+    /// Transfer Stack Pointer to X
+    /// Copies the current contents of the stack register into the X register and sets 
+    /// the zero and negative flags as appropriate.
+    fn tsx(&mut self) {
+        self.set_register_x(self.stack_ptr);
+    }
+
+    /// Transfer X to Stack Pointer
+    /// Copies the current contents of the X register into the stack register.
+    fn txs(&mut self) {
+        self.stack_ptr = self.register_x;
     }
 
     /* OPCODE HELPERS */
