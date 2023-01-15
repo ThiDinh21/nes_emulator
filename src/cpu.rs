@@ -343,6 +343,19 @@ impl CPU {
                     self.ora(&opcode.mode);
                 }
 
+                // PHA - Push Accumulator
+                // Pushes a copy of the accumulator on to the stack.
+                0x48 => self.stack_push(self.register_a),
+
+                // PHP - Push Processor Status
+                // Pushes a copy of the accumulator on to the stack.
+                0x08 => {
+                    // https://www.nesdev.org/wiki/Status_flags#The_B_flag
+                    self.status.insert(StatusFlags::BREAK1);
+                    self.status.insert(StatusFlags::BREAK2);
+                    self.stack_push(self.status.bits());
+                }
+
                 // STA - Store Accumulator
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);

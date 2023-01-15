@@ -174,6 +174,10 @@ lazy_static! {
         OpCode::new(0x19, "ORA", 3, 4 /* +1 if page crossed */, AddressingMode::Absolute_Y),
         OpCode::new(0x01, "ORA", 2, 6, AddressingMode::Indirect_X),
         OpCode::new(0x11, "ORA", 2, 5 /* +1 if page crossed */, AddressingMode::Indirect_Y),
+        // PHA
+        OpCode::new(0x48, "PHA", 1, 3, AddressingMode::NoneAddressing),
+        // PHP
+        OpCode::new(0x08, "PHP", 1, 3, AddressingMode::NoneAddressing),
         // STA
         OpCode::new(0x85, "STA", 2, 2, AddressingMode::ZeroPage),
         OpCode::new(0x95, "STA", 2, 2, AddressingMode::ZeroPage_X),
