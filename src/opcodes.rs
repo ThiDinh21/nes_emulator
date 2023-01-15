@@ -236,9 +236,11 @@ lazy_static! {
         // TSX
         OpCode::new(0xBA, "TSX", 1, 2, AddressingMode::NoneAddressing),
         // TXA
+        OpCode::new(0x8A, "TXA", 1, 2, AddressingMode::NoneAddressing),
         // TXS
         OpCode::new(0x9A, "TSX", 1, 2, AddressingMode::NoneAddressing),
         // TYA
+        OpCode::new(0x98, "TYA", 1, 2, AddressingMode::NoneAddressing),
     ];
 
     pub static ref OPCODES_MAP: HashMap<u8, &'static OpCode> = {
