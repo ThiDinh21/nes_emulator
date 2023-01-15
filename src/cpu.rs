@@ -348,13 +348,13 @@ impl CPU {
                 0x48 => self.stack_push(self.register_a),
 
                 // PHP - Push Processor Status
-                // Pushes a copy of the accumulator on to the stack.
-                0x08 => {
-                    // https://www.nesdev.org/wiki/Status_flags#The_B_flag
-                    self.status.insert(StatusFlags::BREAK1);
-                    self.status.insert(StatusFlags::BREAK2);
-                    self.stack_push(self.status.bits());
-                }
+                0x08 => self.php(),
+
+                // PLA - Pull Accumulator
+                0x68 => self.pla(),
+
+                // PLP - Pull Processor Status
+                0x28 => self.plp(),
 
                 // STA - Store Accumulator
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
@@ -660,6 +660,32 @@ impl CPU {
         let operand = self.mem_read(addr);
 
         self.set_register_a(self.register_a | operand);
+    }
+
+    /// Push Processor Status
+    /// Pushes a copy of the status flags on to the stack.
+    fn php(&mut self) {
+        // https://www.nesdev.org/wiki/Status_flags#The_B_flag
+        self.status.insert(StatusFlags::BREAK1);
+        self.status.insert(StatusFlags::BREAK2);
+        self.stack_push(self.status.bits());
+    }
+
+    /// Pull Accumulator
+    /// Pulls an 8 bit value from the stack and into the accumulator. 
+    /// The zero and negative flags are set as appropriate.
+    fn pla(&mut self) {
+        let data = self.stack_pop();
+        self.set_register_a(data);
+    }
+
+    /// Pull Processor Status
+    /// Pulls an 8 bit value from the stack and into the processor flags. 
+    /// The flags will take on new states as determined by the value pulled.
+    fn plp(&mut self) {
+        self.status.bits = self.stack_pop();
+        self.status.remove(StatusFlags::BREAK1);
+        self.status.insert(StatusFlags::BREAK2);
     }
 
     /// Transfer Accumulator to X
