@@ -356,6 +356,24 @@ impl CPU {
                 // PLP - Pull Processor Status
                 0x28 => self.plp(),
 
+                // ROL - Rotate Left
+                0x2A /* Accumulator mode */ => {
+                    self.rol_accumulator();
+                }
+                0x26 | 0x36 | 0x2E | 0x3E => {
+                    self.rol(&opcode.mode);
+                }
+
+                // ROR - Rotate Right
+                0x6A /* Accumulator mode */ => {
+                    self.ror_accumulator();
+                }
+                0x66 | 0x76 | 0x6E | 0x7E => {
+                    self.ror(&opcode.mode);
+                }
+
+                // ROR - Rotate Right
+
                 // STA - Store Accumulator
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -611,13 +629,6 @@ impl CPU {
         self.set_register_y(value);
     }
 
-    /// Store Accumulator
-    /// Stores the contents of the accumulator into memory.
-    fn sta(&mut self, mode: &AddressingMode) {
-        let addr = self.get_operand_addr(mode);
-        self.mem_write(addr, self.register_a);
-    }
-
     /// Logical Shift Right
     /// Each of the bits in A is shift one place to the right. The bit that was in bit 0 is 
     /// shifted into the carry flag. Bit 7 is set to zero.
@@ -686,6 +697,111 @@ impl CPU {
         self.status.bits = self.stack_pop();
         self.status.remove(StatusFlags::BREAK1);
         self.status.insert(StatusFlags::BREAK2);
+    }
+
+    /// Rotate Left
+    /// Move each of the bits in register A place to the left. 
+    /// Bit 0 is filled with the current value of the carry flag whilst the old bit 7 becomes the new carry flag value.
+    fn rol_accumulator(&mut self) {
+        let mut data = self.register_a;
+        let old_carry_flag = self.status.contains(StatusFlags::CARRY);
+
+        if data >> 7 == 1 {
+            self.set_carry_flag();
+        }
+        else {
+            self.clear_carry_flag();
+        }
+
+        data = data << 1;
+
+        if old_carry_flag {
+            data |= 1;
+        }
+
+        self.set_register_a(data);
+    }
+
+    /// Rotate Left
+    /// Move each of the bits in a memory content place to the left. 
+    /// Bit 0 is filled with the current value of the carry flag whilst the old bit 7 becomes the new carry flag value.
+    fn rol(&mut self, mode: &AddressingMode) -> u8 {
+        let addr = self.get_operand_addr(mode);
+        let mut data = self.mem_read(addr);
+        let old_carry_flag = self.status.contains(StatusFlags::CARRY);
+
+        if data >> 7 == 1 {
+            self.set_carry_flag();
+        }
+        else {
+            self.clear_carry_flag();
+        }
+
+        data = data << 1;
+
+        if old_carry_flag {
+            data |= 1;
+        }
+
+        self.mem_write(addr, data);
+        self.update_zero_and_negative_flag(data);
+        data
+    }
+
+    /// Rotate Right
+    /// Move each of the bits in register A place to the right. 
+    /// Bit 7 is filled with the current value of the carry flag whilst the old bit 0 becomes the new carry flag value.
+    fn ror_accumulator(&mut self) {
+        let mut data = self.register_a;
+        let old_carry_flag = self.status.contains(StatusFlags::CARRY);
+
+        if data & 0x1 == 1 {
+            self.set_carry_flag();
+        }
+        else {
+            self.clear_carry_flag();
+        }
+
+        data = data >> 1;
+
+        if old_carry_flag {
+            data |= 0b1000_0000;
+        }
+
+        self.set_register_a(data);
+    }
+
+    /// Rotate Right
+    /// Move each of the bits in a memory content place to the right. 
+    /// Bit 7 is filled with the current value of the carry flag whilst the old bit 0 becomes the new carry flag value.
+    fn ror(&mut self, mode: &AddressingMode) -> u8 {
+        let addr = self.get_operand_addr(mode);
+        let mut data = self.mem_read(addr);
+        let old_carry_flag = self.status.contains(StatusFlags::CARRY);
+
+        if data & 0x1 == 1 {
+            self.set_carry_flag();
+        }
+        else {
+            self.clear_carry_flag();
+        }
+
+        data = data >> 1;
+
+        if old_carry_flag {
+            data |= 0b1000_0000;
+        }
+
+        self.mem_write(addr, data);
+        self.update_zero_and_negative_flag(data);
+        data
+    }
+
+    /// Store Accumulator
+    /// Stores the contents of the accumulator into memory.
+    fn sta(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_addr(mode);
+        self.mem_write(addr, self.register_a);
     }
 
     /// Transfer Accumulator to X
