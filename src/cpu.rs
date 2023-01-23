@@ -4,17 +4,18 @@ use crate::opcodes;
 
 bitflags! {
     /// https://www.nesdev.org/wiki/Status_flags
-    /// 7  bit  0
-    /// ---- ----
-    /// NVss DIZC
-    /// |||| ||||
-    /// |||| |||+- Carry
-    /// |||| ||+-- Zero
-    /// |||| |+--- Interrupt Disable
-    /// |||| +---- Decimal (not used on NES)
-    /// ||++------ B flag, No CPU effect
-    /// |+-------- Overflow
-    /// +--------- Negative
+    /// 
+    /// 7     bit     0
+    /// ----       ----
+    /// N V s s D I Z C
+    /// | | | | | | | |
+    /// | | | | | | | +- Carry
+    /// | | | | | | +--- Zero
+    /// | | | | | +----- Interrupt Disable
+    /// | | | | +------- Decimal (not used on NES)
+    /// | | + +--------- B flag, No CPU effect
+    /// | +------------- Overflow
+    /// +--------------- Negative
     pub struct StatusFlags: u8 {
         const CARRY = 0b0000_0001;
         const ZERO = 0b0000_0010;
@@ -42,7 +43,6 @@ pub enum AddressingMode {
     Absolute,
     Absolute_X,
     Absolute_Y,
-    // TODO: implement Indirect, Relative, Implicit and Accumulator
     Indirect_X,
     Indirect_Y,
     NoneAddressing,
@@ -64,16 +64,16 @@ pub struct CPU {
     pub memory: [u8; 0xFFFF],
 }
 
-trait Mem {
+pub trait Mem {
     fn mem_read(&self, addr: u16) -> u8;
 
     fn mem_write(&mut self, addr: u16, data: u8);
 
     fn mem_read_u16(&self, addr: u16) -> u16 {
-        let lo = self.mem_read(addr) as u16;
-        let hi = self.mem_read(addr + 1) as u16;
+        let lsb = self.mem_read(addr);
+        let msb = self.mem_read(addr + 1);
 
-        (hi << 8) | lo
+        u16::from_le_bytes([lsb, msb])
     }
 
     fn mem_write_u16(&mut self, addr: u16, data: u16) {
@@ -117,14 +117,24 @@ impl CPU {
         self.run();
     }
 
-    //  The CPU works in a constant cycle:
-    // - Fetch next execution instruction from the instruction memory
-    // - Decode the instruction
-    // - Execute the instruction
-    // - Repeat the cycle
     pub fn run(&mut self) {
+        self.run_with_callback(|_| {});
+    }
+
+    pub fn run_with_callback<F>(&mut self, mut callback: F) 
+    where 
+        F: FnMut(&mut CPU),
+    {
         let ref all_opcodes = *opcodes::OPCODES_MAP;
+
+        //  The CPU works in a constant cycle:
+        // - Fetch next execution instruction from the instruction memory
+        // - Decode the instruction
+        // - Execute the instruction
+        // - Repeat the cycle
         loop {
+            callback(self);
+
             let code = self.mem_read(self.program_counter);
             self.program_counter += 1;
             let program_counter_state = self.program_counter;
@@ -244,7 +254,7 @@ impl CPU {
                 // CMP - Compare
                 // Compares the contents of the accumulator with another memory held value and sets
                 // the zero and carry flags as appropriate.
-                0xC9 | 0xC5 |0xD5 |0xCD |0xDD | 0xD9 | 0xC1 |0xD1 => {
+                0xC9 | 0xC5 |0xD5 |0xCD |0xDD | 0xD9 | 0xC1 | 0xD1 => {
                     self.compare(&opcode.mode, self.register_a);
                 }
 
@@ -286,13 +296,13 @@ impl CPU {
                 // INX - Increment X Register
                 0xE8 => {
                     self.register_x = self.register_x.wrapping_add(1);
-                    self.update_zero_and_negative_flag(self.register_x);
+                    self.update_zero_and_negative_flags(self.register_x);
                 }
 
                 // INY - Increment Y Register
                 0xC8 => {
                     self.register_y = self.register_y.wrapping_add(1);
-                    self.update_zero_and_negative_flag(self.register_y);
+                    self.update_zero_and_negative_flags(self.register_y);
                 }
                 
                 // JMP - Jump
@@ -305,7 +315,8 @@ impl CPU {
 
                 // JSR - Jump to Subroutine
                 0x20 => {
-                    self.stack_push_u16(self.program_counter);
+                    // + 2 - 1 to get to the last byte of the JSR opcode
+                    self.stack_push_u16(self.program_counter + 2 - 1);
                     let jump_addr  = self.mem_read_u16(self.program_counter);
                     self.program_counter = jump_addr;
                 },
@@ -448,8 +459,8 @@ impl CPU {
     /// Load catridge's program to memory
     pub fn load(&mut self, program: Vec<u8>) {
         // [0x8000 .. 0xFFFF] is reserved for program's ROM
-        self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
-        self.mem_write_u16(0xFFFC, 0x8000);
+        self.memory[0x0600..(0x0600 + program.len())].copy_from_slice(&program[..]);
+        self.mem_write_u16(0xFFFC, 0x0600);
     }
 
     /* STACK FUNCTIONS */
@@ -478,8 +489,8 @@ impl CPU {
     }
 
     fn stack_push_u16(&mut self, data: u16) {
-        let lsb = (data >> 8) as u8;
-        let msb = (data & 0x00FF) as u8;
+        let msb = (data >> 8) as u8;
+        let lsb = (data & 0x00FF) as u8;
 
         self.stack_push(msb);
         self.stack_push(lsb);
@@ -510,8 +521,7 @@ impl CPU {
     fn and(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_addr(mode);
         let operand = self.mem_read(addr);
-        let result = self.register_a & operand;
-        self.set_register_a(result);
+        self.set_register_a(self.register_a & operand);
     }
 
     /// Arithmetic Shift Left
@@ -545,7 +555,7 @@ impl CPU {
 
         operand = operand << 1;
         self.mem_write(addr, operand as u8);
-        self.update_zero_and_negative_flag(operand);
+        self.update_zero_and_negative_flags(operand);
 
         operand
     }
@@ -579,7 +589,7 @@ impl CPU {
         operand = operand.wrapping_sub(1);
 
         self.mem_write(addr, operand);
-        self.update_zero_and_negative_flag(operand);
+        self.update_zero_and_negative_flags(operand);
 
         operand
     }
@@ -588,14 +598,14 @@ impl CPU {
     /// Subtracts one from the X register setting the zero and negative flags as appropriate.
     fn dex(&mut self) {
         self.register_x = self.register_x.wrapping_sub(1);
-        self.update_zero_and_negative_flag(self.register_x);
+        self.update_zero_and_negative_flags(self.register_x);
     }
 
     /// Decrement Y Register
     /// Subtracts one from the Y register setting the zero and negative flags as appropriate.
     fn dey(&mut self) {
         self.register_y = self.register_y.wrapping_sub(1);
-        self.update_zero_and_negative_flag(self.register_y);
+        self.update_zero_and_negative_flags(self.register_y);
     }
 
     /// Exclusive OR
@@ -617,7 +627,7 @@ impl CPU {
         operand = operand.wrapping_add(1);
 
         self.mem_write(addr, operand);
-        self.update_zero_and_negative_flag(operand);
+        self.update_zero_and_negative_flags(operand);
 
         operand
     }
@@ -632,12 +642,12 @@ impl CPU {
         // An original 6502 bug:
         // If the indirect vector falls on a page boundary (e.g. $xxFF where xx is any value from $00 to $FF):
         // Fetches the LSB from $xxFF as expected but takes the MSB from $xx00.
-        if indirect_addr & 0x00FF == 0x00FF {
-            msb_addr = indirect_addr & 0xFF00;
+        msb_addr = if indirect_addr & 0x00FF == 0x00FF {
+             indirect_addr & 0xFF00
         }
         else {
-            msb_addr = indirect_addr.wrapping_add(1);
-        }
+            indirect_addr.wrapping_add(1)
+        };
 
         let lsb = self.mem_read(indirect_addr);
         let msb = self.mem_read(msb_addr);
@@ -787,7 +797,7 @@ impl CPU {
         }
 
         self.mem_write(addr, data);
-        self.update_zero_and_negative_flag(data);
+        self.update_negative_flag(data);
         data
     }
 
@@ -836,7 +846,7 @@ impl CPU {
         }
 
         self.mem_write(addr, data);
-        self.update_zero_and_negative_flag(data);
+        self.update_negative_flag(data);
         data
     }
 
@@ -935,8 +945,8 @@ impl CPU {
     /// See more: https://skilldrick.github.io/easy6502/#addressing
     fn get_operand_addr(&self, mode: &AddressingMode) -> u16 {
         match mode {
-            AddressingMode::Immediate => return self.program_counter,
-            AddressingMode::ZeroPage => return self.mem_read(self.program_counter) as u16,
+            AddressingMode::Immediate => self.program_counter,
+            AddressingMode::ZeroPage => self.mem_read(self.program_counter) as u16,
             AddressingMode::ZeroPage_X => {
                 let param = self.mem_read(self.program_counter);
                 let addr = param.wrapping_add(self.register_x) as u16;
@@ -960,13 +970,13 @@ impl CPU {
             }
             AddressingMode::Indirect_X => {
                 let base = self.mem_read(self.program_counter);
-                let ptr_lo = base.wrapping_add(self.register_x);
-                let ptr_hi = ptr_lo.wrapping_add(1);
+                let ptr_lsb = base.wrapping_add(self.register_x);
+                let ptr_msb = ptr_lsb.wrapping_add(1);
 
-                let lo = self.mem_read(ptr_lo as u16);
-                let hi = self.mem_read(ptr_hi as u16);
+                let lsb = self.mem_read(ptr_lsb as u16);
+                let msb = self.mem_read(ptr_msb as u16);
 
-                return u16::from_le_bytes([lo, hi]);
+                u16::from_le_bytes([lsb, msb])
             }
             AddressingMode::Indirect_Y => {
                 let base = self.mem_read(self.program_counter);
@@ -1009,19 +1019,19 @@ impl CPU {
     /// Set value to register A and set Zero and Negative flag if needed.
     fn set_register_a(&mut self, value: u8) {
         self.register_a = value;
-        self.update_zero_and_negative_flag(self.register_a);
+        self.update_zero_and_negative_flags(self.register_a);
     }
 
     /// Set value to register X and set Zero and Negative flag if needed.
     fn set_register_x(&mut self, value: u8) {
         self.register_x = value;
-        self.update_zero_and_negative_flag(self.register_x);
+        self.update_zero_and_negative_flags(self.register_x);
     }
 
     /// Set value to register X and set Zero and Negative flag if needed.
     fn set_register_y(&mut self, value: u8) {
         self.register_y = value;
-        self.update_zero_and_negative_flag(self.register_y);
+        self.update_zero_and_negative_flags(self.register_y);
     }
 
     /// Compare a memory held value with some data (e.g. registers) and
@@ -1031,14 +1041,14 @@ impl CPU {
         let operand = self.mem_read(addr);
 
 
-        if compare_with >= operand {
+        if operand <= compare_with {
             self.set_carry_flag();
         } 
         else {
             self.clear_carry_flag();
         }
 
-        self.update_zero_and_negative_flag(operand.wrapping_sub(compare_with));
+        self.update_zero_and_negative_flags(compare_with.wrapping_sub(operand));
     }
 
 
@@ -1050,16 +1060,17 @@ impl CPU {
     fn branch(&mut self, condition: bool) {
         if condition {
             let displacement = self.mem_read(self.program_counter) as i8;
-            let jump_addr = self.program_counter
-                                        .wrapping_add(1)
-                                        .wrapping_add(displacement as u16);
+            let jump_addr = self
+                    .program_counter
+                    .wrapping_add(1)
+                    .wrapping_add(displacement as u16);
             self.program_counter = jump_addr;
         }
     }
 
     /// Set bit 2 of status register if result == 0.
     /// Set last bit of status register if bit 7 of result is set.
-    fn update_zero_and_negative_flag(&mut self, result: u8) {
+    fn update_zero_and_negative_flags(&mut self, result: u8) {
         if result == 0 {
             self.status.insert(StatusFlags::ZERO);
         } else {
@@ -1070,6 +1081,14 @@ impl CPU {
             self.status.insert(StatusFlags::NEGATIVE);
         } else {
             self.status.remove(StatusFlags::NEGATIVE);
+        }
+    }
+
+    fn update_negative_flag(&mut self, result: u8) {
+        if result >> 7 == 1 {
+            self.status.insert(StatusFlags::NEGATIVE)
+        } else {
+            self.status.remove(StatusFlags::NEGATIVE)
         }
     }
 
