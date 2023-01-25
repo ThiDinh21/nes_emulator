@@ -1,8 +1,10 @@
+pub mod bus;
 pub mod cpu;
 pub mod opcodes;
 
 use std::time::Duration;
 
+use bus::Bus;
 use cpu::{Mem, CPU};
 use rand;
 use rand::Rng;
@@ -121,9 +123,11 @@ fn main() {
     ];
 
     // Load the game
-    let mut cpu = cpu::CPU::new();
+    let bus = Bus::new();
+    let mut cpu = cpu::CPU::new(bus);
     cpu.load(game_code);
     cpu.reset();
+    cpu.program_counter = 0x0600;
 
     // Run game cycle
     let mut screen_state = [0 as u8; 32 * 3 * 32];
@@ -139,10 +143,12 @@ fn main() {
         // render screen state
         if read_screen_state(cpu, &mut screen_state) {
             texture.update(None, &screen_state, 32 * 3).unwrap();
+
             canvas.copy(&texture, None, None).unwrap();
+
             canvas.present();
         }
 
-        ::std::thread::sleep(Duration::new(0, 70_000));
+        ::std::thread::sleep(Duration::new(0, 10_000));
     });
 }

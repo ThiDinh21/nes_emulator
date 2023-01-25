@@ -1,6 +1,10 @@
 use bitflags::bitflags;
+use crate::{opcodes, bus};
+use bus::Bus;
 
-use crate::opcodes;
+// https://www.nesdev.org/wiki/Stack
+const STACK_BOTTOM: u16 = 0x0100;
+const STACK_PTR_RESET: u8 = 0xFD;
 
 bitflags! {
     /// https://www.nesdev.org/wiki/Status_flags
@@ -60,8 +64,7 @@ pub struct CPU {
     pub status: StatusFlags,
     pub program_counter: u16,
     pub stack_ptr: u8,
-    /// https://www.nesdev.org/wiki/CPU_memory_map
-    pub memory: [u8; 0xFFFF],
+    pub bus: Bus,
 }
 
 pub trait Mem {
@@ -86,28 +89,32 @@ pub trait Mem {
 
 impl Mem for CPU {
     fn mem_read(&self, addr: u16) -> u8 {
-        self.memory[addr as usize]
+        self.bus.mem_read(addr)
     }
 
     fn mem_write(&mut self, addr: u16, data: u8) {
-        self.memory[addr as usize] = data;
+        self.bus.mem_write(addr, data);
+    }
+
+    fn mem_read_u16(&self, addr: u16) -> u16 {
+        self.bus.mem_read_u16(addr)
+    }
+
+    fn mem_write_u16(&mut self, addr: u16, data: u16) {
+        self.bus.mem_write_u16(addr, data);
     }
 }
 
 impl CPU {
-    // https://www.nesdev.org/wiki/Stack
-    const STACK_BOTTOM: u16 = 0x0100;
-    const STACK_PTR_RESET: u8 = 0xFD;
-
-    pub fn new() -> Self {
+    pub fn new(bus: Bus) -> Self {
         CPU {
             register_a: 0,
             register_x: 0,
             register_y: 0,
             status: StatusFlags::from_bits_truncate(0b0010_0100),
             program_counter: 0,
-            memory: [0; 0xFFFF],
-            stack_ptr: CPU::STACK_PTR_RESET,
+            stack_ptr: STACK_PTR_RESET,
+            bus,
         }
     }
 
@@ -453,19 +460,22 @@ impl CPU {
         self.register_y = 0;
         self.status = StatusFlags::from_bits_truncate(0b0010_0100);
         self.program_counter = self.mem_read_u16(0xFFFC);
-        self.stack_ptr = CPU::STACK_PTR_RESET;
+        self.stack_ptr = STACK_PTR_RESET;
     }
 
     /// Load catridge's program to memory
     pub fn load(&mut self, program: Vec<u8>) {
         // [0x8000 .. 0xFFFF] is reserved for program's ROM
-        self.memory[0x0600..(0x0600 + program.len())].copy_from_slice(&program[..]);
+        for i in 0..(program.len() as u16) {
+            self.mem_write(0x0600 + i, program[i as usize]);
+        }
+        // self.memory[0x0600..(0x0600 + program.len())].copy_from_slice(&program[..]);
         self.mem_write_u16(0xFFFC, 0x0600);
     }
 
     /* STACK FUNCTIONS */
     fn stack_push(&mut self, data: u8) {
-        let stack_addr = CPU::STACK_BOTTOM.wrapping_add(self.stack_ptr as u16);
+        let stack_addr = STACK_BOTTOM.wrapping_add(self.stack_ptr as u16);
         self.mem_write(stack_addr, data);
 
         let (new_stack_ptr,is_overflowed) = self.stack_ptr.overflowing_sub(1);
@@ -484,7 +494,7 @@ impl CPU {
         
         self.stack_ptr = new_stack_ptr;
 
-        let stack_addr = CPU::STACK_BOTTOM.wrapping_add(self.stack_ptr as u16);
+        let stack_addr = STACK_BOTTOM.wrapping_add(self.stack_ptr as u16);
         self.mem_read(stack_addr)
     }
 
@@ -1107,7 +1117,7 @@ mod test {
 
     #[test]
     fn test_0xa9_lda_immidiate_load_data() {
-        let mut cpu = CPU::new();
+        let mut cpu = CPU::new(Bus::new());
         cpu.load_and_run(vec![0xa9, 0x05, 0x00]);
         assert_eq!(cpu.register_a, 0x05);
         // zero flag should be 0
@@ -1118,7 +1128,7 @@ mod test {
 
     #[test]
     fn test_0xa9_lda_zero_flag() {
-        let mut cpu = CPU::new();
+        let mut cpu = CPU::new(Bus::new());
         cpu.load_and_run(vec![0xa9, 0x00, 0x00]);
         assert_eq!(cpu.register_a, 0x00);
         // zero flag should be 1
@@ -1127,7 +1137,7 @@ mod test {
 
     #[test]
     fn test_0xaa_tax_transfer_a_to_x() {
-        let mut cpu = CPU::new();
+        let mut cpu = CPU::new(Bus::new());
         cpu.load_and_run(vec![0xa9, 0x69, 0xaa, 0x00]);
         assert_eq!(cpu.register_x, 0x69);
         // zero flag should be 0
@@ -1138,7 +1148,7 @@ mod test {
 
     #[test]
     fn test_5_ops_working_together() {
-        let mut cpu = CPU::new();
+        let mut cpu = CPU::new(Bus::new());
         cpu.load_and_run(vec![0xa9, 0xc0, 0xaa, 0xe8, 0x00]);
 
         assert_eq!(cpu.register_x, 0xc1)
@@ -1146,7 +1156,7 @@ mod test {
 
     #[test]
     fn test_inx_overflow() {
-        let mut cpu = CPU::new();
+        let mut cpu = CPU::new(Bus::new());
         cpu.load_and_run(vec![0xe8, 0xe8, 0x00]);
 
         assert_eq!(cpu.register_x, 2)
@@ -1154,7 +1164,7 @@ mod test {
 
     #[test]
     fn test_lda_from_memory() {
-        let mut cpu = CPU::new();
+        let mut cpu = CPU::new(Bus::new());
         cpu.mem_write(0x10, 0x55);
 
         cpu.load_and_run(vec![0xa5, 0x10, 0x00]);
@@ -1164,7 +1174,7 @@ mod test {
 
     #[test]
     fn test_adc_0x69() {
-        let mut cpu = CPU::new();
+        let mut cpu = CPU::new(Bus::new());
         cpu.mem_write(0x10, 0x50);
         // set reg_a to 0x55
         // add reg_a with 0xFF
@@ -1177,7 +1187,7 @@ mod test {
 
     #[test]
     fn test_and_0x2d() {
-        let mut cpu = CPU::new();
+        let mut cpu = CPU::new(Bus::new());
         cpu.mem_write(0x1000, 0x50);
         // set reg_a to 0x10
         // and reg_a with 0x50
