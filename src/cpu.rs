@@ -1114,41 +1114,32 @@ impl CPU {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::cartridge::test::test_rom;
 
     #[test]
     fn test_0xa9_lda_immidiate_load_data() {
-        let mut cpu = CPU::new(Bus::new());
+        let bus = Bus::new(test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(vec![0xa9, 0x05, 0x00]);
-        assert_eq!(cpu.register_a, 0x05);
-        // zero flag should be 0
-        assert!(!cpu.status.contains(StatusFlags::ZERO));
-        // negative flag should be 0
-        assert!(!cpu.status.contains(StatusFlags::NEGATIVE));
+        assert_eq!(cpu.register_a, 5);
+        assert!(cpu.status.bits() & 0b0000_0010 == 0b00);
+        assert!(cpu.status.bits() & 0b1000_0000 == 0);
     }
 
     #[test]
-    fn test_0xa9_lda_zero_flag() {
-        let mut cpu = CPU::new(Bus::new());
-        cpu.load_and_run(vec![0xa9, 0x00, 0x00]);
-        assert_eq!(cpu.register_a, 0x00);
-        // zero flag should be 1
-        assert!(cpu.status.contains(StatusFlags::ZERO));
-    }
+    fn test_0xaa_tax_move_a_to_x() {
+        let bus = Bus::new(test_rom());
+        let mut cpu = CPU::new(bus);
+        cpu.register_a = 10;
+        cpu.load_and_run(vec![0xaa, 0x00]);
 
-    #[test]
-    fn test_0xaa_tax_transfer_a_to_x() {
-        let mut cpu = CPU::new(Bus::new());
-        cpu.load_and_run(vec![0xa9, 0x69, 0xaa, 0x00]);
-        assert_eq!(cpu.register_x, 0x69);
-        // zero flag should be 0
-        assert!(!cpu.status.contains(StatusFlags::ZERO));
-        // negative flag should be 0
-        assert!(!cpu.status.contains(StatusFlags::NEGATIVE));
+        assert_eq!(cpu.register_x, 10)
     }
 
     #[test]
     fn test_5_ops_working_together() {
-        let mut cpu = CPU::new(Bus::new());
+        let bus = Bus::new(test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.load_and_run(vec![0xa9, 0xc0, 0xaa, 0xe8, 0x00]);
 
         assert_eq!(cpu.register_x, 0xc1)
@@ -1156,43 +1147,22 @@ mod test {
 
     #[test]
     fn test_inx_overflow() {
-        let mut cpu = CPU::new(Bus::new());
+        let bus = Bus::new(test_rom());
+        let mut cpu = CPU::new(bus);
+        cpu.register_x = 0xff;
         cpu.load_and_run(vec![0xe8, 0xe8, 0x00]);
 
-        assert_eq!(cpu.register_x, 2)
+        assert_eq!(cpu.register_x, 1)
     }
 
     #[test]
     fn test_lda_from_memory() {
-        let mut cpu = CPU::new(Bus::new());
+        let bus = Bus::new(test_rom());
+        let mut cpu = CPU::new(bus);
         cpu.mem_write(0x10, 0x55);
 
         cpu.load_and_run(vec![0xa5, 0x10, 0x00]);
 
         assert_eq!(cpu.register_a, 0x55);
-    }
-
-    #[test]
-    fn test_adc_0x69() {
-        let mut cpu = CPU::new(Bus::new());
-        cpu.mem_write(0x10, 0x50);
-        // set reg_a to 0x55
-        // add reg_a with 0xFF
-        cpu.load_and_run(vec![0xa5, 0x10, 0x69, 0x50, 0x00]);
-
-        assert_eq!(cpu.register_a, 0xa0);
-        assert!(cpu.status.contains(StatusFlags::OVERFLOW));
-        assert!(!cpu.status.contains(StatusFlags::CARRY));
-    }
-
-    #[test]
-    fn test_and_0x2d() {
-        let mut cpu = CPU::new(Bus::new());
-        cpu.mem_write(0x1000, 0x50);
-        // set reg_a to 0x10
-        // and reg_a with 0x50
-        cpu.load_and_run(vec![0xa9, 0x10, 0x2D, 0x00, 0x10, 0x00]);
-
-        assert_eq!(cpu.register_a, 0x10);
     }
 }

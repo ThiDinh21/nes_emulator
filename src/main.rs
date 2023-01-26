@@ -1,10 +1,9 @@
 pub mod bus;
+pub mod cartridge;
 pub mod cpu;
 pub mod opcodes;
-pub mod cartridge;
 
 use std::time::Duration;
-
 use bus::Bus;
 use cpu::{Mem, CPU};
 use rand;
@@ -124,32 +123,32 @@ fn main() {
     ];
 
     // Load the game
-    let bus = Bus::new();
-    let mut cpu = cpu::CPU::new(bus);
-    cpu.load(game_code);
-    cpu.reset();
-    cpu.program_counter = 0x0600;
+    // let bus = Bus::new(test_rom());
+    // let mut cpu = cpu::CPU::new(bus);
+    // cpu.load(game_code);
+    // cpu.reset();
+    // cpu.program_counter = 0x0600;
 
-    // Run game cycle
-    let mut screen_state = [0 as u8; 32 * 3 * 32];
-    let mut rng = rand::thread_rng();
+    // // Run game cycle
+    // let mut screen_state = [0 as u8; 32 * 3 * 32];
+    // let mut rng = rand::thread_rng();
 
-    cpu.run_with_callback(move |cpu| {
-        // read user input and write it to mem[0xFF]
-        // update mem[0xFE] with new Random Number
-        handle_user_input(cpu, &mut event_pump);
-        cpu.mem_write(0xFE, rng.gen_range(1..16));
+    // cpu.run_with_callback(move |cpu| {
+    //     // read user input and write it to mem[0xFF]
+    //     // update mem[0xFE] with new Random Number
+    //     handle_user_input(cpu, &mut event_pump);
+    //     cpu.mem_write(0xFE, rng.gen_range(1..16));
 
-        // read mem mapped screen state
-        // render screen state
-        if read_screen_state(cpu, &mut screen_state) {
-            texture.update(None, &screen_state, 32 * 3).unwrap();
+    //     // read mem mapped screen state
+    //     // render screen state
+    //     if read_screen_state(cpu, &mut screen_state) {
+    //         texture.update(None, &screen_state, 32 * 3).unwrap();
 
-            canvas.copy(&texture, None, None).unwrap();
+    //         canvas.copy(&texture, None, None).unwrap();
 
-            canvas.present();
-        }
+    //         canvas.present();
+    //     }
 
-        ::std::thread::sleep(Duration::new(0, 10_000));
-    });
+    //     ::std::thread::sleep(Duration::new(0, 10_000));
+    // });
 }

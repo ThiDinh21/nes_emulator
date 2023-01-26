@@ -35,13 +35,28 @@ const PPU_REGISTERS_MIRRORS_END: u16 = 0x3FFF;
 pub struct Bus {
     /// https://www.nesdev.org/wiki/CPU_memory_map
     cpu_vram: [u8; 2048],
+    rom: Rom,
 }
 
 impl Bus {
-    pub fn new() -> Self {
+    pub fn new(rom: Rom) -> Self {
         Bus {
             cpu_vram: [0; 2048],
+            rom,
         }
+    }
+
+    fn read_prg_rom(&self, mut addr: u16) -> u8 {
+        addr -= 0x8000;
+
+        // PRG Rom Size might be 16 KiB or 32 KiB.
+        // Because [0x8000 … 0x10000] mapped region is 32 KiB of addressable space,
+        // the upper 16 KiB needs to be mapped to the lower 16 KiB (if a game has only 16 KiB of PRG ROM)
+        if self.rom.prg_rom.len() == 0x4000 && addr >= 0x4000 {
+            addr %= 0x4000;
+        }
+
+        self.rom.prg_rom[addr as usize]
     }
 }
 
@@ -56,6 +71,7 @@ impl Mem for Bus {
                 let _mirror_down_addr = addr & 0b0010_0000_0000_0111;
                 todo!("PPU is not supported yet")
             }
+            0x8000..=0xFFFF => self.read_prg_rom(addr),
             _ => {
                 println!("Ignoring mem access at {}", addr);
                 0
@@ -73,6 +89,7 @@ impl Mem for Bus {
                 let _mirror_down_addr = addr & 0b0010_0000_00000111;
                 todo!("PPU is not supported yet");
             }
+            0x8000..=0xFFFF => panic!("Attempt to write to Cartridge ROM space"),
             _ => {
                 println!("Ignoring mem write-access at {}", addr);
             }
