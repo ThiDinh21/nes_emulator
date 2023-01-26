@@ -1,6 +1,7 @@
 pub mod bus;
 pub mod cpu;
 pub mod opcodes;
+pub mod cartridge;
 
 use std::time::Duration;
 
