@@ -1,7 +1,7 @@
 /// ASCII "NES" followed by MS-DOS end-of-file
 const NES_TAG: [u8; 4] = [0x4E, 0x45, 0x53, 0x1A];
-const PRG_ROM_PAGE_SIZE: usize = 16000;
-const CHR_ROM_PAGE_SIZE: usize = 8000;
+const PRG_ROM_PAGE_SIZE: usize = 16384;
+const CHR_ROM_PAGE_SIZE: usize = 8192;
 
 #[derive(Debug, PartialEq)]
 pub enum Mirroring {

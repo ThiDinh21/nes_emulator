@@ -1,4 +1,4 @@
-use crate::cpu::Mem;
+use crate::{cartridge::Rom, cpu::Mem};
 
 //  _______________ $10000  _______________
 // | PRG-ROM       |       |               |
