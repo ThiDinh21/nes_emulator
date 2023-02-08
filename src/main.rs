@@ -3,7 +3,6 @@ pub mod cartridge;
 pub mod cpu;
 pub mod opcodes;
 
-use std::time::Duration;
 use bus::Bus;
 use cpu::{Mem, CPU};
 use rand;
@@ -13,6 +12,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::EventPump;
+use std::time::Duration;
 
 fn handle_user_input(cpu: &mut CPU, event_pump: &mut EventPump) {
     for event in event_pump.poll_iter() {
